@@ -18,7 +18,7 @@ package io.tileverse.pmtiles;
 /**
  * Reference implementation of Hilbert curve algorithms for testing.
  */
-public class HilbertCurve {
+class HilbertCurve {
 
     /**
      * Convert (x,y) to d (Hilbert curve distance)

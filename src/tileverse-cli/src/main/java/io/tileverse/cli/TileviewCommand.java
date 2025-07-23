@@ -19,7 +19,6 @@ import io.tileverse.pmtiles.CompressionUtil;
 import io.tileverse.pmtiles.InvalidHeaderException;
 import io.tileverse.pmtiles.PMTilesHeader;
 import io.tileverse.pmtiles.PMTilesReader;
-import io.tileverse.pmtiles.ZXY;
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.RangeReaderBuilder;
 import io.tileverse.rangereader.azure.AzureBlobRangeReader;
@@ -36,7 +35,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 import java.util.concurrent.Callable;
-import java.util.concurrent.atomic.AtomicInteger;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -433,10 +431,10 @@ public class TileviewCommand implements Callable<Integer> {
                 + "," + header.maxLatE7() / 10000000.0);
 
         // Count tiles per zoom level (if not too many tiles)
-        if (header.addressedTilesCount() < 1000000) {
-            System.out.println("\nTiles per zoom level:");
-            countTilesPerZoom(reader);
-        }
+        //        if (header.addressedTilesCount() < 1000000) {
+        //            System.out.println("\nTiles per zoom level:");
+        //            countTilesPerZoom(reader);
+        //        }
 
         return 0;
     }
@@ -564,23 +562,6 @@ public class TileviewCommand implements Callable<Integer> {
                             System.out.println("Tile not found with flipped Y coordinate either.");
                         }
                     }
-
-                    System.out.println(
-                            "\nPerforming exhaustive search to find closest tile (this may take some time)...");
-                    ZXY zxy = new ZXY((byte) (int) zoom, x, y);
-                    long tileId = zxy.toTileId();
-                    Long closestTileId = reader.findClosestTileId(tileId);
-
-                    if (closestTileId != null) {
-                        ZXY closestZXY = ZXY.fromTileId(closestTileId);
-                        System.out.println("\nClosest tile found:");
-                        System.out.println(
-                                "  Original requested: " + zoom + "/" + x + "/" + y + " (tileId: " + tileId + ")");
-                        System.out.println("  Closest available:  " + closestZXY.z() + "/" + closestZXY.x() + "/"
-                                + closestZXY.y() + " (tileId: " + closestTileId + ")");
-
-                        System.out.println("\nYou may want to try extracting this tile instead.");
-                    }
                 }
 
                 System.err.println("Error: Tile " + zoom + "/" + x + "/" + y + " not found in the PMTiles file.");
@@ -615,20 +596,20 @@ public class TileviewCommand implements Callable<Integer> {
     /**
      * Counts the number of tiles at each zoom level.
      */
-    private void countTilesPerZoom(PMTilesReader reader)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
-        PMTilesHeader header = reader.getHeader();
-
-        for (int z = header.minZoom(); z <= header.maxZoom(); z++) {
-            AtomicInteger count = new AtomicInteger();
-
-            // Stream tiles at this zoom level
-            final int currentZoom = z;
-            reader.streamTiles(currentZoom, tile -> count.incrementAndGet());
-
-            System.out.println("  Zoom " + z + ": " + count.get() + " tiles");
-        }
-    }
+    //    private void countTilesPerZoom(PMTilesReader reader)
+    //            throws IOException, CompressionUtil.UnsupportedCompressionException {
+    //        PMTilesHeader header = reader.getHeader();
+    //
+    //        for (int z = header.minZoom(); z <= header.maxZoom(); z++) {
+    //            AtomicInteger count = new AtomicInteger();
+    //
+    //            // Stream tiles at this zoom level
+    //            final int currentZoom = z;
+    //            reader.streamTiles(currentZoom, tile -> count.incrementAndGet());
+    //
+    //            System.out.println("  Zoom " + z + ": " + count.get() + " tiles");
+    //        }
+    //    }
 
     /**
      * Formats a file size in bytes to a human-readable string.

@@ -25,7 +25,7 @@ import java.util.List;
 /**
  * Utility class for serializing and deserializing PMTiles directories.
  */
-public final class DirectoryUtil {
+final class DirectoryUtil {
 
     private DirectoryUtil() {
         // Prevent instantiation

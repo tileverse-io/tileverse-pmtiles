@@ -21,11 +21,11 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Reader for PMTiles files that provides access to tiles and metadata.
@@ -56,6 +56,9 @@ import java.util.function.Consumer;
  * }</pre>
  */
 public class PMTilesReader implements Closeable {
+
+    private static final Logger log = LoggerFactory.getLogger(PMTilesReader.class);
+
     private final RangeReader rangeReader;
     private final PMTilesHeader header;
 
@@ -103,84 +106,6 @@ public class PMTilesReader implements Closeable {
     }
 
     /**
-     * Exhaustively searches all directory entries to find the closest tile ID.
-     * This is a debugging method and should not be used in production.
-     *
-     * @param targetTileId the tile ID to find
-     * @return the closest matching tile ID found, or null if none found
-     * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
-     */
-    public Long findClosestTileId(long targetTileId)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
-        System.out.println("[DEBUG exhaustiveSearch] Exhaustively searching for closest tile ID to " + targetTileId);
-
-        // Get all entries
-        List<PMTilesEntry> allEntries = getAllEntries();
-
-        // Sort them by tileId
-        allEntries.sort((a, b) -> Long.compare(a.tileId(), b.tileId()));
-
-        System.out.println("[DEBUG exhaustiveSearch] Searching through " + allEntries.size() + " entries");
-
-        Long closestTileId = null;
-        long minDistance = Long.MAX_VALUE;
-
-        for (PMTilesEntry entry : allEntries) {
-            // Skip leaf directories
-            if (entry.isLeaf()) {
-                continue;
-            }
-
-            // Skip empty entries
-            if (entry.isEmpty()) {
-                continue;
-            }
-
-            // Check if this tileId is in range
-            long entryStartTileId = entry.tileId();
-            long entryEndTileId = entryStartTileId + entry.runLength() - 1;
-
-            if (targetTileId >= entryStartTileId && targetTileId <= entryEndTileId) {
-                System.out.println("[DEBUG exhaustiveSearch] Found exact match: " + entry.tileId() + " (runs from "
-                        + entryStartTileId + " to " + entryEndTileId + ")");
-                return targetTileId;
-            }
-
-            // Check if this is the closest match so far
-            long distanceToStart = Math.abs(targetTileId - entryStartTileId);
-            long distanceToEnd = Math.abs(targetTileId - entryEndTileId);
-            long distance = Math.min(distanceToStart, distanceToEnd);
-
-            if (distance < minDistance) {
-                minDistance = distance;
-                closestTileId = distance == distanceToStart ? entryStartTileId : entryEndTileId;
-            }
-        }
-
-        if (closestTileId != null) {
-            System.out.println("[DEBUG exhaustiveSearch] Closest tile ID found: " + closestTileId + " (distance: "
-                    + minDistance + ")");
-            // Find the entry for this tile ID
-            for (PMTilesEntry entry : allEntries) {
-                long entryStartTileId = entry.tileId();
-                long entryEndTileId = entryStartTileId + entry.runLength() - 1;
-
-                if (closestTileId >= entryStartTileId && closestTileId <= entryEndTileId) {
-                    ZXY zxy = ZXY.fromTileId(closestTileId);
-                    System.out.println("[DEBUG exhaustiveSearch]   This corresponds to tile: " + zxy.z() + "/" + zxy.x()
-                            + "/" + zxy.y());
-                    break;
-                }
-            }
-        } else {
-            System.out.println("[DEBUG exhaustiveSearch] No closest tile ID found");
-        }
-
-        return closestTileId;
-    }
-
-    /**
      * Gets a tile by its ZXY coordinates.
      *
      * @param z the zoom level
@@ -192,23 +117,13 @@ public class PMTilesReader implements Closeable {
      */
     public Optional<byte[]> getTile(int z, int x, int y)
             throws IOException, CompressionUtil.UnsupportedCompressionException {
-        System.out.println("[DEBUG getTile] Requested tile: " + z + "/" + x + "/" + y);
-        System.out.println("[DEBUG getTile] PMTiles min/max zoom: " + header.minZoom() + "/" + header.maxZoom());
 
-        ZXY zxy = new ZXY((byte) z, x, y);
+        ZXY zxy = ZXY.of(z, x, y);
         long tileId = zxy.toTileId();
-
-        System.out.println("[DEBUG getTile] Converted to tileId: " + tileId);
-
-        // Validate against header
-        int maxTilesWide = 1 << z;
-        System.out.println("[DEBUG getTile] Valid ranges at z=" + z + ": x=[0," + (maxTilesWide - 1) + "], y=[0,"
-                + (maxTilesWide - 1) + "]");
 
         // Find the tile in the directory structure
         Optional<TileLocation> location = findTileLocation(tileId);
         if (location.isEmpty()) {
-            System.out.println("[DEBUG getTile] No location found for tileId " + tileId);
             return Optional.empty();
         }
 
@@ -217,24 +132,14 @@ public class PMTilesReader implements Closeable {
         long offset = header.tileDataOffset() + tileLocation.offset();
         int length = tileLocation.length();
 
-        System.out.println("[DEBUG getTile] Found tile at offset=" + offset + ", length=" + length);
-
         ByteBuffer buffer = rangeReader.readRange(offset, length);
-
-        System.out.println("[DEBUG getTile] Successfully read " + buffer.remaining() + " bytes from RangeReader");
-
         byte[] tileData = new byte[buffer.remaining()];
         buffer.get(tileData);
 
         // Decompress if necessary
         if (header.tileCompression() != PMTilesHeader.COMPRESSION_NONE) {
-            byte[] before = tileData;
             tileData = CompressionUtil.decompress(tileData, header.tileCompression());
-            System.out.println(
-                    "[DEBUG getTile] Decompressed from " + before.length + " to " + tileData.length + " bytes");
         }
-
-        System.out.println("[DEBUG getTile] Successfully retrieved tile data (" + tileData.length + " bytes)");
         return Optional.of(tileData);
     }
 
@@ -263,86 +168,19 @@ public class PMTilesReader implements Closeable {
     }
 
     /**
-     * Streams all tiles at a specific zoom level, calling the provided consumer for each tile.
+     * Gets the metadata as a parsed JSON string.
      *
-     * @param zoom the zoom level
-     * @param consumer the consumer to call for each tile
+     * @return the metadata as a JSON string
      * @throws IOException if an I/O error occurs
      * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
      */
-    public void streamTiles(int zoom, Consumer<Tile> consumer)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
-        // Get all entries
-        List<PMTilesEntry> entries = getAllEntries();
-
-        // Filter by zoom level and convert to Tiles
-        for (PMTilesEntry entry : entries) {
-            // Skip leaf directory entries
-            if (entry.isLeaf()) {
-                continue;
-            }
-
-            // Process each tile in the run
-            for (int i = 0; i < entry.runLength(); i++) {
-                long tileId = entry.tileId() + i;
-                ZXY zxy = ZXY.fromTileId(tileId);
-
-                // Skip tiles not at the requested zoom
-                if (zxy.z() != zoom) {
-                    continue;
-                }
-
-                // Read the tile data
-                long offset = header.tileDataOffset() + entry.offset();
-                int length = entry.length();
-
-                ByteBuffer buffer = rangeReader.readRange(offset, length);
-
-                byte[] tileData = new byte[buffer.remaining()];
-                buffer.get(tileData);
-
-                // Decompress if necessary
-                if (header.tileCompression() != PMTilesHeader.COMPRESSION_NONE) {
-                    tileData = CompressionUtil.decompress(tileData, header.tileCompression());
-                }
-
-                consumer.accept(new Tile(zxy.z(), zxy.x(), zxy.y(), tileData));
-            }
-        }
+    public String getMetadataAsString() throws IOException, CompressionUtil.UnsupportedCompressionException {
+        byte[] metadataBytes = getMetadata();
+        return new String(metadataBytes, java.nio.charset.StandardCharsets.UTF_8);
     }
 
     /**
-     * Gets all directory entries in the PMTiles file.
-     *
-     * @return a list of all PMTilesEntry objects
-     * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
-     */
-    public List<PMTilesEntry> getAllEntries() throws IOException, CompressionUtil.UnsupportedCompressionException {
-        List<PMTilesEntry> allEntries = new ArrayList<>();
-
-        // Read the root directory
-        byte[] rootDirBytes = readDirectoryBytes(header.rootDirOffset(), (int) header.rootDirBytes());
-        List<PMTilesEntry> rootEntries = DirectoryUtil.deserializeDirectory(rootDirBytes);
-
-        // Process each entry in the root directory
-        for (PMTilesEntry entry : rootEntries) {
-            if (entry.isLeaf()) {
-                // This is a leaf directory, read and process its entries
-                byte[] leafDirBytes = readDirectoryBytes(header.leafDirsOffset() + entry.offset(), entry.length());
-                List<PMTilesEntry> leafEntries = DirectoryUtil.deserializeDirectory(leafDirBytes);
-                allEntries.addAll(leafEntries);
-            } else {
-                // This is a regular entry
-                allEntries.add(entry);
-            }
-        }
-
-        return allEntries;
-    }
-
-    /**
-     * Finds the location of a tile in the PMTiles file.
+     * Finds the location of a tile in the PMTiles file using recursive directory traversal.
      *
      * @param tileId the ID of the tile to find
      * @return the location of the tile, or empty if the tile doesn't exist
@@ -351,192 +189,98 @@ public class PMTilesReader implements Closeable {
      */
     private Optional<TileLocation> findTileLocation(long tileId)
             throws IOException, CompressionUtil.UnsupportedCompressionException {
-        System.out.println("[DEBUG findTileLocation] Looking for tileId: " + tileId);
-
-        // Read the root directory
-        byte[] rootDirBytes = readDirectoryBytes(header.rootDirOffset(), (int) header.rootDirBytes());
-        List<PMTilesEntry> rootEntries = DirectoryUtil.deserializeDirectory(rootDirBytes);
-
-        System.out.println("[DEBUG findTileLocation] Root directory contains " + rootEntries.size() + " entries");
-
-        // Print some sample entries from the root directory
-        if (!rootEntries.isEmpty()) {
-            int samplesToShow = Math.min(5, rootEntries.size());
-            System.out.println("[DEBUG findTileLocation] Sample root entries (showing " + samplesToShow + " of "
-                    + rootEntries.size() + "):");
-            for (int i = 0; i < samplesToShow; i++) {
-                PMTilesEntry e = rootEntries.get(i);
-                System.out.println("[DEBUG findTileLocation]   Entry " + i + ": tileId=" + e.tileId() + ", runLength="
-                        + e.runLength() + ", isLeaf="
-                        + e.isLeaf() + ", offset="
-                        + e.offset() + ", length="
-                        + e.length());
-            }
-        }
-
-        // Find the entry for this tile ID in the root directory
-        System.out.println("[DEBUG findTileLocation] Searching for tileId " + tileId + " in root directory...");
-        Optional<PMTilesEntry> rootEntry = findEntryForTileId(rootEntries, tileId);
-
-        if (rootEntry.isEmpty()) {
-            System.out.println(
-                    "[DEBUG findTileLocation] No matching entry found in root directory for tileId " + tileId);
-            return Optional.empty();
-        }
-
-        PMTilesEntry entry = rootEntry.get();
-        System.out.println("[DEBUG findTileLocation] Found matching entry in root directory: " + "tileId="
-                + entry.tileId() + ", runLength="
-                + entry.runLength() + ", isLeaf="
-                + entry.isLeaf() + ", offset="
-                + entry.offset() + ", length="
-                + entry.length());
-
-        if (entry.isLeaf()) {
-            // This is a leaf directory, read it and find the tile
-            System.out.println("[DEBUG findTileLocation] Entry is a leaf directory, reading leaf entries...");
-            byte[] leafDirBytes = readDirectoryBytes(header.leafDirsOffset() + entry.offset(), entry.length());
-            List<PMTilesEntry> leafEntries = DirectoryUtil.deserializeDirectory(leafDirBytes);
-
-            System.out.println("[DEBUG findTileLocation] Leaf directory contains " + leafEntries.size() + " entries");
-
-            // Print some sample entries from the leaf directory
-            if (!leafEntries.isEmpty()) {
-                int samplesToShow = Math.min(5, leafEntries.size());
-                System.out.println("[DEBUG findTileLocation] Sample leaf entries (showing " + samplesToShow + " of "
-                        + leafEntries.size() + "):");
-                for (int i = 0; i < samplesToShow; i++) {
-                    PMTilesEntry e = leafEntries.get(i);
-                    System.out.println(
-                            "[DEBUG findTileLocation]   Entry " + i + ": tileId=" + e.tileId() + ", runLength="
-                                    + e.runLength() + ", isLeaf="
-                                    + e.isLeaf() + ", offset="
-                                    + e.offset() + ", length="
-                                    + e.length());
-                }
-            }
-
-            // Find the entry for this tile ID in the leaf directory
-            System.out.println("[DEBUG findTileLocation] Searching for tileId " + tileId + " in leaf directory...");
-            Optional<PMTilesEntry> leafEntry = findEntryForTileId(leafEntries, tileId);
-
-            if (leafEntry.isEmpty()) {
-                System.out.println(
-                        "[DEBUG findTileLocation] No matching entry found in leaf directory for tileId " + tileId);
-                return Optional.empty();
-            }
-
-            entry = leafEntry.get();
-            System.out.println("[DEBUG findTileLocation] Found matching entry in leaf directory: " + "tileId="
-                    + entry.tileId() + ", runLength="
-                    + entry.runLength() + ", isLeaf="
-                    + entry.isLeaf() + ", offset="
-                    + entry.offset() + ", length="
-                    + entry.length());
-        }
-
-        // Check if we have a valid entry
-        if (entry.isEmpty()) {
-            System.out.println("[DEBUG findTileLocation] Entry is empty, no tile data exists");
-            return Optional.empty();
-        }
-
-        System.out.println("[DEBUG findTileLocation] Returning tile location: offset=" + entry.offset() + ", length="
-                + entry.length());
-        return Optional.of(new TileLocation(entry.offset(), entry.length()));
+        return searchDirectory(header.rootDirOffset(), (int) header.rootDirBytes(), tileId, false);
     }
 
     /**
-     * Finds an entry for a specific tile ID in a list of entries.
+     * Recursively searches directories for a tile entry.
      *
-     * @param entries the list of entries to search
+     * @param dirOffset the offset of the directory to search
+     * @param dirLength the length of the directory data
      * @param tileId the tile ID to find
-     * @return the entry for the tile ID, or empty if not found
+     * @param isLeafDir whether this is a leaf directory (determines offset calculation)
+     * @return the tile location if found, or empty if not found
+     * @throws IOException if an I/O error occurs
+     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     */
+    private Optional<TileLocation> searchDirectory(long dirOffset, int dirLength, long tileId, boolean isLeafDir)
+            throws IOException, CompressionUtil.UnsupportedCompressionException {
+
+        // Read and deserialize directory
+        byte[] dirBytes = readDirectoryBytes(dirOffset, dirLength);
+        List<PMTilesEntry> entries = DirectoryUtil.deserializeDirectory(dirBytes);
+
+        // Find entry that might contain our tileId
+        Optional<PMTilesEntry> entry = findEntryForTileId(entries, tileId);
+
+        if (entry.isEmpty()) {
+            return Optional.empty();
+        }
+
+        PMTilesEntry found = entry.get();
+
+        if (found.isLeaf()) {
+            // Recursively search the leaf directory
+            return searchDirectory(header.leafDirsOffset() + found.offset(), found.length(), tileId, true);
+        } else {
+            // This is a tile entry - check if it's empty
+            if (found.isEmpty()) {
+                return Optional.empty();
+            }
+            return Optional.of(new TileLocation(found.offset(), found.length()));
+        }
+    }
+
+    /**
+     * Searches for a directory entry that contains the specified tile ID using binary search.
+     * This method handles both regular tile entries (with run lengths) and leaf directory entries.
+     *
+     * @param entries the list of directory entries to search (must be sorted by tileId)
+     * @param tileId the tile ID to search for
+     * @return the directory entry that contains the tile, or empty if no suitable entry found
      */
     private Optional<PMTilesEntry> findEntryForTileId(List<PMTilesEntry> entries, long tileId) {
-        System.out.println(
-                "[DEBUG findEntryForTileId] Searching for tileId " + tileId + " in " + entries.size() + " entries");
-
-        // Binary search for the entry
         int low = 0;
         int high = entries.size() - 1;
-        int iterations = 0;
-
-        // Keep track of the closest leaf entry we find
-        PMTilesEntry closestLeafEntry = null;
-        long closestLeafDistance = Long.MAX_VALUE;
 
         while (low <= high) {
-            iterations++;
             int mid = (low + high) >>> 1;
             PMTilesEntry entry = entries.get(mid);
 
-            // Handle leaf entries specially - they have runLength = 0 which causes issues
-            if (entry.isLeaf()) {
-                long distanceToThisLeaf = Math.abs(tileId - entry.tileId());
-
-                // Track the closest leaf entry we find during search
-                if (distanceToThisLeaf < closestLeafDistance) {
-                    closestLeafDistance = distanceToThisLeaf;
-                    closestLeafEntry = entry;
-                }
-
-                System.out.println(
-                        "[DEBUG findEntryForTileId] Iteration " + iterations + ": checking leaf entry at index "
-                                + mid + ", tileId="
-                                + entry.tileId() + ", isLeaf=true");
-
-                // For leaf entries, we don't have a range - just compare the tileId directly
-                if (tileId < entry.tileId()) {
-                    System.out.println("[DEBUG findEntryForTileId]   tileId " + tileId
-                            + " is less than leaf entry tileId " + entry.tileId() + ", searching left");
-                    high = mid - 1;
+            if (tileId < entry.tileId()) {
+                high = mid - 1;
+            } else if (entry.isLeaf() || entry.runLength() == 0) {
+                // For leaf entries or entries with no run length, match exact tileId
+                if (tileId == entry.tileId()) {
+                    return Optional.of(entry);
                 } else if (tileId > entry.tileId()) {
-                    System.out.println("[DEBUG findEntryForTileId]   tileId " + tileId
-                            + " is greater than leaf entry tileId " + entry.tileId() + ", searching right");
                     low = mid + 1;
                 } else {
-                    // Exact match on the tileId
-                    System.out.println("[DEBUG findEntryForTileId]   Found exact match with leaf entry!");
-                    return Optional.of(entry);
+                    high = mid - 1;
                 }
             } else {
-                // Regular (non-leaf) entry handling
-                long entryStart = entry.tileId();
+                // For regular entries, check if tileId falls within the run range
                 long entryEnd = entry.tileId() + entry.runLength() - 1;
-
-                System.out.println("[DEBUG findEntryForTileId] Iteration " + iterations + ": checking entry at index "
-                        + mid + ", tileId range "
-                        + entryStart + " to " + entryEnd + ", isLeaf="
-                        + entry.isLeaf());
-
-                if (tileId < entryStart) {
-                    System.out.println("[DEBUG findEntryForTileId]   tileId " + tileId + " is less than entry start "
-                            + entryStart + ", searching left");
-                    high = mid - 1;
-                } else if (tileId > entryEnd) {
-                    System.out.println("[DEBUG findEntryForTileId]   tileId " + tileId + " is greater than entry end "
-                            + entryEnd + ", searching right");
-                    low = mid + 1;
-                } else {
-                    // Found a match
-                    System.out.println("[DEBUG findEntryForTileId]   Found match! tileId " + tileId
-                            + " is within range " + entryStart + " to " + entryEnd);
+                if (tileId <= entryEnd) {
                     return Optional.of(entry);
+                } else {
+                    low = mid + 1;
                 }
             }
         }
 
-        // If we've found a leaf entry that's close to our target tileId,
-        // return it since it might contain the subdirectory with our target
-        if (closestLeafEntry != null && closestLeafDistance < 10000) {
-            System.out.println("[DEBUG findEntryForTileId] Returning closest leaf entry with tileId="
-                    + closestLeafEntry.tileId() + " (distance=" + closestLeafDistance + ")");
-            return Optional.of(closestLeafEntry);
+        // No exact match found, check if there's a suitable entry just before insertion point
+        if (high >= 0) {
+            PMTilesEntry candidate = entries.get(high);
+            if (candidate.isLeaf()) {
+                // Return leaf directory if it might contain our tile
+                return Optional.of(candidate);
+            } else if (candidate.runLength() > 0 && tileId < candidate.tileId() + candidate.runLength()) {
+                // Return regular entry if tileId falls within its run range
+                return Optional.of(candidate);
+            }
         }
 
-        System.out.println("[DEBUG findEntryForTileId] No match found after " + iterations + " iterations (low=" + low
-                + ", high=" + high + ")");
         return Optional.empty();
     }
 
