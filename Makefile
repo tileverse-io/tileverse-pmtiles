@@ -81,7 +81,7 @@ test:
 
 .PHONY: test-unit
 test-unit:
-	./mvnw test -Dtest="!*IT" -ntp -T1C
+	./mvnw test -Dtest="!*IT" -Dsurefire.failIfNoSpecifiedTests=false -ntp -T1C
 
 .PHONY: test-it
 test-it:
