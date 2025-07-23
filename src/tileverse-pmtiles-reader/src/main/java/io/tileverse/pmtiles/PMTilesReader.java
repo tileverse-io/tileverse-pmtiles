@@ -17,6 +17,7 @@ package io.tileverse.pmtiles;
 
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.file.FileRangeReader;
+import io.tileverse.rangereader.nio.ByteBufferPool;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -87,13 +88,17 @@ public class PMTilesReader implements Closeable {
         this.rangeReader = Objects.requireNonNull(rangeReader, "RangeReader cannot be null");
 
         // Read the header
-        ByteBuffer headerBuffer = rangeReader.readRange(0, 127);
-        if (headerBuffer.remaining() != 127) {
-            throw new InvalidHeaderException("Failed to read complete header");
-        }
+        ByteBuffer headerBuffer = ByteBufferPool.getDefault().borrowHeap(127);
+        try {
+            if (rangeReader.readRange(0, 127, headerBuffer) != 127) {
+                throw new InvalidHeaderException("Failed to read complete header");
+            }
 
-        // Deserialize the header directly from the ByteBuffer
-        this.header = PMTilesHeader.deserialize(headerBuffer);
+            // Deserialize the header directly from the ByteBuffer
+            this.header = PMTilesHeader.deserialize(headerBuffer);
+        } finally {
+            ByteBufferPool.getDefault().returnBuffer(headerBuffer);
+        }
     }
 
     /**
@@ -132,10 +137,15 @@ public class PMTilesReader implements Closeable {
         long offset = header.tileDataOffset() + tileLocation.offset();
         int length = tileLocation.length();
 
-        ByteBuffer buffer = rangeReader.readRange(offset, length);
-        byte[] tileData = new byte[buffer.remaining()];
-        buffer.get(tileData);
-
+        byte[] tileData;
+        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(length);
+        try {
+            rangeReader.readRange(offset, length, buffer);
+            tileData = new byte[buffer.remaining()];
+            buffer.get(tileData);
+        } finally {
+            ByteBufferPool.getDefault().returnBuffer(buffer);
+        }
         // Decompress if necessary
         if (header.tileCompression() != PMTilesHeader.COMPRESSION_NONE) {
             tileData = CompressionUtil.decompress(tileData, header.tileCompression());
@@ -154,10 +164,15 @@ public class PMTilesReader implements Closeable {
         long offset = header.jsonMetadataOffset();
         long length = header.jsonMetadataBytes();
 
-        ByteBuffer buffer = rangeReader.readRange(offset, (int) length);
-
-        byte[] metadataBytes = new byte[buffer.remaining()];
-        buffer.get(metadataBytes);
+        byte[] metadataBytes;
+        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap((int) length);
+        try {
+            rangeReader.readRange(offset, (int) length, buffer);
+            metadataBytes = new byte[buffer.remaining()];
+            buffer.get(metadataBytes);
+        } finally {
+            ByteBufferPool.getDefault().returnBuffer(buffer);
+        }
 
         // Decompress if necessary
         if (header.internalCompression() != PMTilesHeader.COMPRESSION_NONE) {
@@ -295,11 +310,16 @@ public class PMTilesReader implements Closeable {
      */
     private byte[] readDirectoryBytes(long offset, int length)
             throws IOException, CompressionUtil.UnsupportedCompressionException {
-        ByteBuffer buffer = rangeReader.readRange(offset, length);
 
-        byte[] directoryBytes = new byte[buffer.remaining()];
-        buffer.get(directoryBytes);
-
+        byte[] directoryBytes;
+        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(length);
+        try {
+            rangeReader.readRange(offset, length, buffer);
+            directoryBytes = new byte[buffer.remaining()];
+            buffer.get(directoryBytes);
+        } finally {
+            ByteBufferPool.getDefault().returnBuffer(buffer);
+        }
         // Decompress if necessary
         if (header.internalCompression() != PMTilesHeader.COMPRESSION_NONE) {
             directoryBytes = CompressionUtil.decompress(directoryBytes, header.internalCompression());
