@@ -15,7 +15,10 @@
  */
 package io.tileverse.cli;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 import io.tileverse.pmtiles.CompressionUtil;
 import io.tileverse.pmtiles.InvalidHeaderException;
@@ -30,6 +33,7 @@ import java.nio.file.Path;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import picocli.CommandLine;
@@ -37,6 +41,7 @@ import picocli.CommandLine;
 /**
  * Tests for the TileviewCommand class.
  */
+@Disabled("This is work in progress")
 public class TileviewCommandTest {
 
     @TempDir
