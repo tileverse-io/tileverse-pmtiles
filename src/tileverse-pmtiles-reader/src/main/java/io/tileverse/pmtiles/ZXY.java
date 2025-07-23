@@ -32,6 +32,24 @@ package io.tileverse.pmtiles;
 public record ZXY(byte z, int x, int y) {
 
     /**
+     * Creates a new ZXY tile coordinate with int zoom level for convenience.
+     * This avoids the need to cast zoom level to byte.
+     *
+     * @param z the zoom level (0-127, within byte range)
+     * @param x the X coordinate
+     * @param y the Y coordinate
+     * @return a new ZXY instance
+     * @throws IllegalArgumentException if the coordinates are outside the valid range or z overflows byte
+     */
+    public static ZXY of(int z, int x, int y) {
+        if (z < Byte.MIN_VALUE || z > Byte.MAX_VALUE) {
+            throw new IllegalArgumentException(
+                    "Zoom level " + z + " is outside byte range " + Byte.MIN_VALUE + " to " + Byte.MAX_VALUE);
+        }
+        return new ZXY((byte) z, x, y);
+    }
+
+    /**
      * Validates that the coordinates are valid for the given zoom level.
      * At zoom level z, the valid range for x and y is 0 to 2^z - 1.
      *

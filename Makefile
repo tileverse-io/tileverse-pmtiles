@@ -89,11 +89,11 @@ test-it:
 
 .PHONY: test-reader
 test-reader:
-	./mvnw test -pl src -ntp
+	./mvnw test -pl src/tileverse-pmtiles-reader -ntp
 
 .PHONY: test-reader-it
 test-reader-it:
-	./mvnw verify -pl src -Dsurefire.skip=true -ntp
+	./mvnw verify -pl src/tileverse-pmtiles-reader -Dsurefire.skip=true -ntp
 
 .PHONY: verify
 verify: lint test
