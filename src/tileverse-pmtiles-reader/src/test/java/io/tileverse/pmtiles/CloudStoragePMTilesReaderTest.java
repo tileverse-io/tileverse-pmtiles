@@ -13,11 +13,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.tileverse.core;
+package io.tileverse.pmtiles;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.tileverse.pmtiles.PMTilesHeader;
 import java.io.IOException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -13,16 +13,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.tileverse.core;
+package io.tileverse.pmtiles;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import io.tileverse.pmtiles.CompressionUtil;
-import io.tileverse.pmtiles.InvalidHeaderException;
-import io.tileverse.pmtiles.PMTilesHeader;
-import io.tileverse.pmtiles.PMTilesReader;
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.azure.AzureBlobRangeReader;
 import io.tileverse.rangereader.cache.CachingRangeReader;

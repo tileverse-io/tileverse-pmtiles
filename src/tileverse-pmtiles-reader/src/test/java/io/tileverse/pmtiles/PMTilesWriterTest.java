@@ -13,15 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.tileverse.core;
+package io.tileverse.pmtiles;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import io.tileverse.pmtiles.CompressionUtil;
-import io.tileverse.pmtiles.InvalidHeaderException;
-import io.tileverse.pmtiles.PMTilesHeader;
-import io.tileverse.pmtiles.PMTilesReader;
-import io.tileverse.pmtiles.PMTilesWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

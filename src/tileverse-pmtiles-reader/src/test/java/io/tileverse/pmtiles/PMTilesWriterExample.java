@@ -13,13 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.tileverse.core;
+package io.tileverse.pmtiles;
 
-import io.tileverse.pmtiles.CompressionUtil;
-import io.tileverse.pmtiles.InvalidHeaderException;
-import io.tileverse.pmtiles.PMTilesHeader;
-import io.tileverse.pmtiles.PMTilesReader;
-import io.tileverse.pmtiles.PMTilesWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
