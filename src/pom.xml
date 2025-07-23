@@ -2,9 +2,12 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>io.tileverse.pmtiles</groupId>
-  <artifactId>tileverse-pmtiles-parent</artifactId>
-  <version>${revision}</version>
+  <parent>
+    <groupId>io.tileverse.pmtiles</groupId>
+    <artifactId>tileverse-pmtiles-parent</artifactId>
+    <version>${revision}</version>
+  </parent>
+  <artifactId>tileverse-pmtiles</artifactId>
   <packaging>pom</packaging>
 
   <name>Tileverse</name>
@@ -12,7 +15,9 @@
   <url>https://tileverse.io</url>
 
   <modules>
-    <module>src</module>
+    <module>tileverse-pmtiles-reader</module>
+    <module>tileverse-mvt</module>
+    <module>tileverse-cli</module>
   </modules>
 
   <properties>
@@ -371,9 +376,6 @@
             <palantirJavaFormat>
               <version>2.61.0</version>
             </palantirJavaFormat>
-            <licenseHeader>
-              <file>${maven.multiModuleProjectDirectory}/license_header.txt</file>
-            </licenseHeader>
           </java>
           <upToDateChecking>
             <enabled>true</enabled>

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+
+  <parent>
+    <groupId>io.tileverse.pmtiles</groupId>
+    <artifactId>tileverse-pmtiles</artifactId>
+    <version>${revision}</version>
+  </parent>
+
+  <artifactId>tileverse-mvt</artifactId>
+  <name>Tileverse - MVT</name>
+  <description>Vector tile encoding/decoding for Tileverse</description>
+
+  <dependencies>
+    <!-- Internal modules -->
+    <dependency>
+      <groupId>io.tileverse.pmtiles</groupId>
+      <artifactId>tileverse-pmtiles-reader</artifactId>
+    </dependency>
+
+    <!-- JTS Topology Suite -->
+    <dependency>
+      <groupId>org.locationtech.jts</groupId>
+      <artifactId>jts-core</artifactId>
+    </dependency>
+
+    <!-- Protocol Buffers -->
+    <dependency>
+      <groupId>com.google.protobuf</groupId>
+      <artifactId>protobuf-java</artifactId>
+    </dependency>
+  </dependencies>
+
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.xolstice.maven.plugins</groupId>
+        <artifactId>protobuf-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
+</project>
