@@ -284,14 +284,46 @@ public class PMTilesReader implements Closeable {
             }
         }
 
-        // No exact match found, check if there's a suitable entry just before insertion point
-        if (high >= 0) {
-            PMTilesEntry candidate = entries.get(high);
-            if (candidate.isLeaf()) {
-                // Return leaf directory if it might contain our tile
-                return Optional.of(candidate);
-            } else if (candidate.runLength() > 0 && tileId < candidate.tileId() + candidate.runLength()) {
-                // Return regular entry if tileId falls within its run range
+        // No exact match found, check for containing entry at insertion point
+        return findContainingEntry(entries, high, tileId);
+    }
+
+    /**
+     * Attempts to find an entry that contains the target tileId at the binary search insertion point.
+     *
+     * <p>This method handles the PMTiles format's range-based entries where a single directory entry
+     * can represent multiple consecutive tiles. After a binary search fails to find an exact match,
+     * the entry just before the insertion point might still contain our target tile.
+     *
+     * <p>Two cases are handled:
+     * <ul>
+     * <li><b>Regular entries with run lengths</b>: An entry with tileId=100 and runLength=5 represents
+     *     tiles 100-104. If searching for tileId=102, this entry should be returned even though
+     *     102 != 100, because 102 falls within the range [100, 104].</li>
+     * <li><b>Leaf directory entries</b>: These point to subdirectories that might contain the target
+     *     tile. Since we don't know the exact bounds of leaf directories, we return the closest
+     *     leaf entry as a heuristic - it might contain our target in its subdirectory.</li>
+     * </ul>
+     *
+     * @param entries the list of directory entries that was searched
+     * @param insertionPoint the index where the target would be inserted (from binary search)
+     * @param tileId the tile ID we're searching for
+     * @return the containing entry if found, or empty if no suitable entry exists
+     */
+    private Optional<PMTilesEntry> findContainingEntry(List<PMTilesEntry> entries, int insertionPoint, long tileId) {
+        if (insertionPoint < 0) {
+            return Optional.empty();
+        }
+
+        PMTilesEntry candidate = entries.get(insertionPoint);
+
+        if (candidate.isLeaf()) {
+            // Return leaf directory - it might contain our tile in its subdirectory
+            return Optional.of(candidate);
+        } else if (candidate.runLength() > 0) {
+            // Check if tileId falls within the entry's run range [tileId, tileId + runLength - 1]
+            long rangeEnd = candidate.tileId() + candidate.runLength() - 1;
+            if (tileId <= rangeEnd) {
                 return Optional.of(candidate);
             }
         }
