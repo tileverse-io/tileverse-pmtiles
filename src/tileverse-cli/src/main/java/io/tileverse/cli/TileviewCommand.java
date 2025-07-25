@@ -230,7 +230,7 @@ public class TileviewCommand implements Callable<Integer> {
         RangeReader baseReader =
                 switch (scheme) {
                     case "http", "https" -> {
-                        var httpBuilder = HttpRangeReader.builder().uri(uri);
+                        var httpBuilder = HttpRangeReader.builder(uri);
                         if (trustAllCertificates) {
                             httpBuilder.trustAllCertificates();
                         }

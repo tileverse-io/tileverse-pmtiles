@@ -77,7 +77,7 @@ public class PMTilesReaderExample {
             throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
         // Create an HttpRangeReader
         URI uri = URI.create(url);
-        try (RangeReader reader = new HttpRangeReader(uri);
+        try (RangeReader reader = HttpRangeReader.builder(uri).build();
                 PMTilesReader pmtiles = new PMTilesReader(reader)) {
 
             // Get the header

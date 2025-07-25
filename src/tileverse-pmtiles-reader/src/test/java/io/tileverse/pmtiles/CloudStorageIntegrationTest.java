@@ -177,10 +177,8 @@ public class CloudStorageIntegrationTest {
 
         URI httpUri = URI.create(httpUrl);
 
-        try (HttpRangeReader httpRangeReader = HttpRangeReader.builder()
-                        .uri(httpUri)
-                        .trustAllCertificates()
-                        .build();
+        try (HttpRangeReader httpRangeReader =
+                        HttpRangeReader.builder(httpUri).trustAllCertificates().build();
                 RangeReader rangeReader =
                         CachingRangeReader.builder(httpRangeReader).build();
                 PMTilesReader pmTilesReader = new PMTilesReader(rangeReader)) {
