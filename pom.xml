@@ -7,19 +7,63 @@
   <version>${revision}</version>
   <packaging>pom</packaging>
 
-  <name>Tileverse</name>
+  <name>Tileverse PMTiles</name>
   <description>A Java 17 library for reading and writing PMTiles</description>
   <url>https://tileverse.io</url>
+
+  <licenses>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+
+  <developers>
+    <developer>
+      <name>Gabriel Roldan</name>
+      <email>gabriel.roldan@gmail.com</email>
+      <organization>Multiversio LLC</organization>
+      <organizationUrl>https://multivers.io</organizationUrl>
+    </developer>
+  </developers>
 
   <modules>
     <module>test-data</module>
     <module>src</module>
   </modules>
 
+  <scm>
+    <connection>scm:git:https://github.com/tileverse-io/tileverse-pmtiles.git</connection>
+    <developerConnection>scm:git:https://github.com/tileverse-io/tileverse-pmtiles.git</developerConnection>
+    <tag>HEAD</tag>
+    <url>https://github.com/tileverse-io/tileverse-pmtiles</url>
+  </scm>
+
+  <issueManagement>
+    <system>GitHub Issues</system>
+    <url>https://github.com/tileverse-io/tileverse-pmtiles/issues</url>
+  </issueManagement>
+
+  <distributionManagement>
+    <repository>
+      <id>central</id>
+      <url>https://central.sonatype.com/api/v1/publisher/deployments/upload</url>
+    </repository>
+    <snapshotRepository>
+      <id>central</id>
+      <url>https://central.sonatype.com/repository/maven-snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <properties>
     <!-- CI-friendly version management -->
     <revision>1.0-SNAPSHOT</revision>
     <tileverse-rangereader.version>1.0-SNAPSHOT</tileverse-rangereader.version>
+
+    <!-- Skip GPG signing by default (enabled during publishing) -->
+    <gpg.skip>true</gpg.skip>
+
     <fmt.skip>false</fmt.skip>
     <sortpom.skip>${fmt.skip}</sortpom.skip>
     <sortpom.action>sort</sortpom.action>
@@ -309,6 +353,17 @@
           <artifactId>maven-shade-plugin</artifactId>
           <version>3.5.2</version>
         </plugin>
+        <!-- Central Portal Publishing -->
+        <plugin>
+          <groupId>org.sonatype.central</groupId>
+          <artifactId>central-publishing-maven-plugin</artifactId>
+          <version>0.8.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-gpg-plugin</artifactId>
+          <version>3.2.8</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -457,6 +512,44 @@
               <goal>clean</goal>
             </goals>
             <phase>clean</phase>
+          </execution>
+        </executions>
+      </plugin>
+
+      <!-- Central Portal Publishing -->
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <deploymentName>Tileverse PMTiles</deploymentName>
+          <autoPublish>true</autoPublish>
+          <waitUntil>published</waitUntil>
+          <excludeArtifacts>
+            <excludeArtifact>tileverse-pmtiles-test-data</excludeArtifact>
+          </excludeArtifacts>
+        </configuration>
+      </plugin>
+
+      <!-- GPG Signing (only when publishing) -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-gpg-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>sign-artifacts</id>
+            <goals>
+              <goal>sign</goal>
+            </goals>
+            <phase>verify</phase>
+            <configuration>
+              <skip>${gpg.skip}</skip>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+            </configuration>
           </execution>
         </executions>
       </plugin>
