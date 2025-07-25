@@ -9,6 +9,7 @@
   </parent>
   <artifactId>tileverse-pmtiles</artifactId>
   <packaging>pom</packaging>
+  <name>Tileverse PMTilesi Modules</name>
 
   <modules>
     <module>tileverse-pmtiles-reader</module>

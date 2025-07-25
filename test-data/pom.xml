@@ -8,4 +8,5 @@
     <version>${revision}</version>
   </parent>
   <artifactId>tileverse-pmtiles-test-data</artifactId>
+  <name>Tileverse PMTiles Test data</name>
 </project>
