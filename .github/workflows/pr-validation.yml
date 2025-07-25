@@ -38,12 +38,6 @@ jobs:
         distribution: 'temurin'
         cache: maven
         
-    - name: Clone and build tileverse-rangereader dependency
-      run: |
-        git clone https://github.com/tileverse-io/tileverse-rangereader.git ../tileverse-rangereader
-        cd ../tileverse-rangereader
-        ./mvnw clean install -DskipTests -ntp
-        
     - name: Check code formatting and license headers
       run: make lint
 
@@ -65,12 +59,6 @@ jobs:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
         cache: maven
-        
-    - name: Clone and build tileverse-rangereader dependency
-      run: |
-        git clone https://github.com/tileverse-io/tileverse-rangereader.git ../tileverse-rangereader
-        cd ../tileverse-rangereader
-        ./mvnw clean install -DskipTests -ntp
         
     - name: Compile code and install
       run: make install
@@ -110,12 +98,6 @@ jobs:
         java-version: ${{ matrix.java-version }}
         distribution: 'temurin'
         cache: maven
-        
-    - name: Clone and build tileverse-rangereader dependency
-      run: |
-        git clone https://github.com/tileverse-io/tileverse-rangereader.git ../tileverse-rangereader
-        cd ../tileverse-rangereader
-        ./mvnw clean install -DskipTests -ntp
         
     - name: Install dependencies
       run: ./mvnw clean install -pl src/tileverse-pmtiles-reader -am -DskipTests -ntp
