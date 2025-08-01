@@ -13,6 +13,7 @@
 
   <modules>
     <module>tileverse-vectortiles</module>
+    <module>tileverse-tilepyramid</module>
     <module>tileverse-pmtiles-reader</module>
   </modules>
 
