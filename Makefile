@@ -51,7 +51,7 @@ quick-build: package
 
 .PHONY: install
 install:
-	./mvnw install -DskipTests -ntp -T1C
+	./mvnw install -DskipTests -ntp -T1C -U
 
 .PHONY: format
 format: format-pom format-java

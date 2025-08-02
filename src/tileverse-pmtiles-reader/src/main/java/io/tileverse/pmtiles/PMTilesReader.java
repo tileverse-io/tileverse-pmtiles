@@ -17,6 +17,7 @@ package io.tileverse.pmtiles;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.tileverse.jackson.databind.pmtiles.v3.PMTilesMetadata;
+import io.tileverse.rangereader.ByteRange;
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.file.FileRangeReader;
 import io.tileverse.rangereader.nio.ByteBufferPool;
@@ -139,16 +140,12 @@ public class PMTilesReader implements Closeable {
 
     /**
      * Reads and returns the decompressed tile data
-     * @param tileLocation tile location (offset/length)
+     * @param absolutePosition tile location (offset/length)
      * @throws UncheckedIOException
      * @return the tile contents
      */
-    private ByteBuffer getTile(TileLocation tileLocation) {
-        // Read the tile data
-        final long offset = header.tileDataOffset() + tileLocation.offset();
-        final int length = tileLocation.length();
-
-        return readData(offset, length, header.tileCompression());
+    private ByteBuffer getTile(ByteRange absolutePosition) {
+        return readData(absolutePosition, header.tileCompression());
     }
     /**
      * Gets the raw, uncompressed, metadata JSON from the PMTiles file.
@@ -161,7 +158,7 @@ public class PMTilesReader implements Closeable {
 
         final long offset = header.jsonMetadataOffset();
         final int length = (int) header.jsonMetadataBytes();
-        return readData(offset, length, header.internalCompression());
+        return readData(ByteRange.of(offset, length), header.internalCompression());
     }
 
     /**
@@ -206,11 +203,11 @@ public class PMTilesReader implements Closeable {
      * @throws IOException if an I/O error occurs
      * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private Optional<TileLocation> findTileLocation(long tileId) throws IOException, UnsupportedCompressionException {
+    private Optional<ByteRange> findTileLocation(long tileId) throws IOException, UnsupportedCompressionException {
         final long rootDirOffset = header.rootDirOffset();
         final int rootDirLength = (int) header.rootDirBytes();
         final boolean isLeafDir = false;
-        return searchDirectory(rootDirOffset, rootDirLength, tileId, isLeafDir);
+        return searchDirectory(ByteRange.of(rootDirOffset, rootDirLength), tileId, isLeafDir);
     }
 
     /**
@@ -220,15 +217,15 @@ public class PMTilesReader implements Closeable {
      * @param dirLength the length of the directory data
      * @param tileId the tile ID to find
      * @param isLeafDir whether this is a leaf directory (determines offset calculation)
-     * @return the tile location if found, or empty if not found
+     * @return the absolute tile location if found, or empty if not found
      * @throws IOException if an I/O error occurs
      * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private Optional<TileLocation> searchDirectory(long dirOffset, int dirLength, long tileId, boolean isLeafDir)
+    private Optional<ByteRange> searchDirectory(ByteRange entryRange, final long tileId, final boolean isLeafDir)
             throws IOException, UnsupportedCompressionException {
 
         // Read and deserialize directory
-        ByteBuffer dirBytes = readDirectoryBytes(dirOffset, dirLength);
+        ByteBuffer dirBytes = readDirectoryBytes(entryRange);
         List<PMTilesEntry> entries = DirectoryUtil.deserializeDirectory(dirBytes);
 
         // Find entry that might contain our tileId
@@ -242,13 +239,10 @@ public class PMTilesReader implements Closeable {
 
         if (found.isLeaf()) {
             // Recursively search the leaf directory
-            return searchDirectory(header.leafDirsOffset() + found.offset(), found.length(), tileId, true);
+            return searchDirectory(header.leafDirDataRange(found), tileId, true);
         } else {
-            // This is a tile entry - check if it's empty
-            if (found.isEmpty()) {
-                return Optional.empty();
-            }
-            return Optional.of(new TileLocation(found.offset(), found.length()));
+            // This is a tile entry - filter out empty tiles
+            return Optional.of(found).filter(e -> !e.isEmpty()).map(header::tileDataRange);
         }
     }
 
@@ -346,14 +340,14 @@ public class PMTilesReader implements Closeable {
      * @throws IOException if an I/O error occurs
      * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private ByteBuffer readDirectoryBytes(long offset, int length) throws IOException, UnsupportedCompressionException {
-        return readData(offset, length, header.internalCompression());
+    private ByteBuffer readDirectoryBytes(ByteRange byteRange) throws IOException, UnsupportedCompressionException {
+        return readData(byteRange, header.internalCompression());
     }
 
-    private ByteBuffer readData(final long offset, final int length, byte compression) {
-        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(length);
+    private ByteBuffer readData(ByteRange range, byte compression) {
+        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(range.length());
         try {
-            rangeReader.readRange(offset, length, buffer);
+            rangeReader.readRange(range, buffer);
             return CompressionUtil.decompress(buffer, compression);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -361,14 +355,6 @@ public class PMTilesReader implements Closeable {
             ByteBufferPool.getDefault().returnBuffer(buffer);
         }
     }
-
-    /**
-     * Represents the location of a tile in the PMTiles file.
-     *
-     * @param offset the offset of the tile data
-     * @param length the length of the tile data
-     */
-    private record TileLocation(long offset, int length) {}
 
     /**
      * Represents a tile with its coordinates and data.
