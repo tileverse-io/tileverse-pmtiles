@@ -22,13 +22,14 @@ import io.tileverse.rangereader.file.FileRangeReader;
 import io.tileverse.rangereader.nio.ByteBufferPool;
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.io.IOUtils;
 
 /**
  * Reader for PMTiles files that provides access to tiles and metadata.
@@ -60,8 +61,6 @@ import org.slf4j.LoggerFactory;
  */
 public class PMTilesReader implements Closeable {
 
-    private static final Logger log = LoggerFactory.getLogger(PMTilesReader.class);
-
     private final RangeReader rangeReader;
     private final PMTilesHeader header;
     private final ObjectMapper objectMapper;
@@ -75,6 +74,11 @@ public class PMTilesReader implements Closeable {
      */
     public PMTilesReader(Path path) throws IOException, InvalidHeaderException {
         this(FileRangeReader.of(path));
+    }
+
+    @Override
+    public void close() throws IOException {
+        rangeReader.close();
     }
 
     /**
@@ -122,65 +126,42 @@ public class PMTilesReader implements Closeable {
      * @param y the Y coordinate
      * @return the tile data, or empty if the tile doesn't exist
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    public Optional<byte[]> getTile(int z, int x, int y)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
+    public Optional<ByteBuffer> getTile(int z, int x, int y) throws IOException {
 
         ZXY zxy = ZXY.of(z, x, y);
         long tileId = zxy.toTileId();
 
         // Find the tile in the directory structure
-        Optional<TileLocation> location = findTileLocation(tileId);
-        if (location.isEmpty()) {
-            return Optional.empty();
-        }
-
-        // Read the tile data
-        TileLocation tileLocation = location.get();
-        long offset = header.tileDataOffset() + tileLocation.offset();
-        int length = tileLocation.length();
-
-        byte[] tileData;
-        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(length);
-        try {
-            rangeReader.readRange(offset, length, buffer);
-            tileData = new byte[buffer.remaining()];
-            buffer.get(tileData);
-        } finally {
-            ByteBufferPool.getDefault().returnBuffer(buffer);
-        }
-        tileData = CompressionUtil.decompress(tileData, header.tileCompression());
-        return Optional.of(tileData);
+        return findTileLocation(tileId).map(this::getTile);
     }
 
     /**
-     * Gets the metadata JSON from the PMTiles file.
+     * Reads and returns the decompressed tile data
+     * @param tileLocation tile location (offset/length)
+     * @throws UncheckedIOException
+     * @return the tile contents
+     */
+    private ByteBuffer getTile(TileLocation tileLocation) {
+        // Read the tile data
+        final long offset = header.tileDataOffset() + tileLocation.offset();
+        final int length = tileLocation.length();
+
+        return readData(offset, length, header.tileCompression());
+    }
+    /**
+     * Gets the raw, uncompressed, metadata JSON from the PMTiles file.
      *
      * @return the metadata as a byte array
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    public byte[] getMetadata() throws IOException, CompressionUtil.UnsupportedCompressionException {
-        long offset = header.jsonMetadataOffset();
-        long length = header.jsonMetadataBytes();
+    public ByteBuffer getRawMetadata() throws IOException, UnsupportedCompressionException {
 
-        byte[] metadataBytes;
-        ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap((int) length);
-        try {
-            rangeReader.readRange(offset, (int) length, buffer);
-            metadataBytes = new byte[buffer.remaining()];
-            buffer.get(metadataBytes);
-        } finally {
-            ByteBufferPool.getDefault().returnBuffer(buffer);
-        }
-
-        // Decompress if necessary
-        if (header.internalCompression() != PMTilesHeader.COMPRESSION_NONE) {
-            metadataBytes = CompressionUtil.decompress(metadataBytes, header.internalCompression());
-        }
-
-        return metadataBytes;
+        final long offset = header.jsonMetadataOffset();
+        final int length = (int) header.jsonMetadataBytes();
+        return readData(offset, length, header.internalCompression());
     }
 
     /**
@@ -188,30 +169,30 @@ public class PMTilesReader implements Closeable {
      *
      * @return the metadata as a JSON string
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    public String getMetadataAsString() throws IOException, CompressionUtil.UnsupportedCompressionException {
-        byte[] metadataBytes = getMetadata();
-        return new String(metadataBytes, java.nio.charset.StandardCharsets.UTF_8);
+    public String getMetadataAsString() throws IOException, UnsupportedCompressionException {
+        return toString(getRawMetadata());
     }
 
     /**
-     * Gets the metadata as a parsed PMTilesMetadata object.
+     * Gets the metadata as a parsed {@link PMTilesMetadata} object.
+     * <p>
      * This provides structured access to the metadata fields with proper type conversion.
      *
      * @return the metadata as a PMTilesMetadata object
      * @throws IOException if an I/O error occurs or JSON parsing fails
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    public PMTilesMetadata getMetadataObject() throws IOException, CompressionUtil.UnsupportedCompressionException {
-        byte[] metadataBytes = getMetadata();
-        if (metadataBytes.length == 0) {
+    public PMTilesMetadata getMetadata() throws IOException, UnsupportedCompressionException {
+        ByteBuffer metadataBytes = getRawMetadata();
+        if (metadataBytes.remaining() == 0) {
             // Return empty metadata if no metadata is present
             return PMTilesMetadata.of(null);
         }
 
-        try {
-            return objectMapper.readValue(metadataBytes, PMTilesMetadata.class);
+        try (ByteBufferInputStream in = new ByteBufferInputStream(metadataBytes)) {
+            return objectMapper.readValue(in, PMTilesMetadata.class);
         } catch (Exception e) {
             throw new IOException("Failed to parse PMTiles metadata JSON", e);
         }
@@ -223,11 +204,13 @@ public class PMTilesReader implements Closeable {
      * @param tileId the ID of the tile to find
      * @return the location of the tile, or empty if the tile doesn't exist
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private Optional<TileLocation> findTileLocation(long tileId)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
-        return searchDirectory(header.rootDirOffset(), (int) header.rootDirBytes(), tileId, false);
+    private Optional<TileLocation> findTileLocation(long tileId) throws IOException, UnsupportedCompressionException {
+        final long rootDirOffset = header.rootDirOffset();
+        final int rootDirLength = (int) header.rootDirBytes();
+        final boolean isLeafDir = false;
+        return searchDirectory(rootDirOffset, rootDirLength, tileId, isLeafDir);
     }
 
     /**
@@ -239,13 +222,13 @@ public class PMTilesReader implements Closeable {
      * @param isLeafDir whether this is a leaf directory (determines offset calculation)
      * @return the tile location if found, or empty if not found
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
     private Optional<TileLocation> searchDirectory(long dirOffset, int dirLength, long tileId, boolean isLeafDir)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, UnsupportedCompressionException {
 
         // Read and deserialize directory
-        byte[] dirBytes = readDirectoryBytes(dirOffset, dirLength);
+        ByteBuffer dirBytes = readDirectoryBytes(dirOffset, dirLength);
         List<PMTilesEntry> entries = DirectoryUtil.deserializeDirectory(dirBytes);
 
         // Find entry that might contain our tileId
@@ -361,31 +344,22 @@ public class PMTilesReader implements Closeable {
      * @param length the number of bytes to read
      * @return the directory bytes, decompressed if necessary
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private byte[] readDirectoryBytes(long offset, int length)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
+    private ByteBuffer readDirectoryBytes(long offset, int length) throws IOException, UnsupportedCompressionException {
+        return readData(offset, length, header.internalCompression());
+    }
 
-        byte[] directoryBytes;
+    private ByteBuffer readData(final long offset, final int length, byte compression) {
         ByteBuffer buffer = ByteBufferPool.getDefault().borrowHeap(length);
         try {
             rangeReader.readRange(offset, length, buffer);
-            directoryBytes = new byte[buffer.remaining()];
-            buffer.get(directoryBytes);
+            return CompressionUtil.decompress(buffer, compression);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         } finally {
             ByteBufferPool.getDefault().returnBuffer(buffer);
         }
-        // Decompress if necessary
-        if (header.internalCompression() != PMTilesHeader.COMPRESSION_NONE) {
-            directoryBytes = CompressionUtil.decompress(directoryBytes, header.internalCompression());
-        }
-
-        return directoryBytes;
-    }
-
-    @Override
-    public void close() throws IOException {
-        rangeReader.close();
     }
 
     /**
@@ -405,4 +379,12 @@ public class PMTilesReader implements Closeable {
      * @param data the tile data
      */
     public record Tile(byte z, int x, int y, byte[] data) {}
+
+    String toString(ByteBuffer byteBuffer) {
+        try {
+            return IOUtils.toString(new ByteBufferInputStream(byteBuffer), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
 }

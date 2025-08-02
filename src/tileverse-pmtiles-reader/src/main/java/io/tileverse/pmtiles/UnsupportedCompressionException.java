@@ -13,21 +13,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.tileverse.cli;
+package io.tileverse.pmtiles;
 
-import picocli.CommandLine.IVersionProvider;
+import java.io.IOException;
 
 /**
- * Provides version information for the CLI.
+ * Exception thrown when an unsupported compression type is used.
  */
-public class VersionProvider implements IVersionProvider {
-    @Override
-    public String[] getVersion() {
-        // This would ideally be dynamically generated from Maven properties
-        return new String[] {
-            "Tileverse CLI v0.1.0",
-            "Java: " + System.getProperty("java.version"),
-            "OS: " + System.getProperty("os.name") + " " + System.getProperty("os.version")
-        };
+@SuppressWarnings("serial")
+public class UnsupportedCompressionException extends IOException {
+    public UnsupportedCompressionException(String message) {
+        super(message);
+    }
+
+    public UnsupportedCompressionException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

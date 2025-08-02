@@ -96,8 +96,7 @@ final class DirectoryUtil {
      * @return the list of directory entries
      * @throws IOException if an I/O error occurs or the data is malformed
      */
-    public static List<PMTilesEntry> deserializeDirectory(byte[] data) throws IOException {
-        ByteBuffer buffer = ByteBuffer.wrap(data);
+    public static List<PMTilesEntry> deserializeDirectory(ByteBuffer buffer) throws IOException {
 
         // Read number of entries
         long numEntries = readVarint(buffer);
@@ -170,10 +169,10 @@ final class DirectoryUtil {
      * @return a triple containing the compressed root directory, the compressed leaf directories,
      *         and the number of leaf directories
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
     public static DirectoryResult buildRootLeaves(List<PMTilesEntry> entries, byte compressionType, int maxRootDirSize)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, UnsupportedCompressionException {
 
         // Try with just the root directory first
         byte[] uncompressedDir = serializeDirectory(entries);
@@ -207,11 +206,11 @@ final class DirectoryUtil {
      * @return a triple containing the compressed root directory, the compressed leaf directories,
      *         and the number of leaf directories
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
     private static DirectoryResult buildRootLeavesWithSize(
             List<PMTilesEntry> entries, byte compressionType, int leafSize)
-            throws IOException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, UnsupportedCompressionException {
 
         List<PMTilesEntry> rootEntries = new ArrayList<>();
         ByteArrayOutputStream leafDirsStream = new ByteArrayOutputStream();

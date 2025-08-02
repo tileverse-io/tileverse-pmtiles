@@ -16,6 +16,7 @@
 package io.tileverse.pmtiles;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -122,17 +123,16 @@ public class PMTilesWriterExample {
                     + "," + header.maxLatE7() / 10000000.0);
 
             // Read metadata
-            byte[] metadataBytes = reader.getMetadata();
-            String metadata = new String(metadataBytes, StandardCharsets.UTF_8);
+            String metadata = reader.getMetadataAsString();
             System.out.println("\nMetadata: " + metadata);
 
             // Read a specific tile
-            Optional<byte[]> tileData = reader.getTile(0, 0, 0);
+            Optional<ByteBuffer> tileData = reader.getTile(0, 0, 0);
             if (tileData.isPresent()) {
-                byte[] decompressedData = CompressionUtil.decompress(tileData.get(), header.tileCompression());
-                System.out.println("\nRoot tile data: " + new String(decompressedData, StandardCharsets.UTF_8));
+                String stringData = reader.toString(tileData.get());
+                System.out.println("\nRoot tile data: " + stringData);
             }
-        } catch (InvalidHeaderException | CompressionUtil.UnsupportedCompressionException e) {
+        } catch (InvalidHeaderException | UnsupportedCompressionException e) {
             e.printStackTrace();
         }
     }

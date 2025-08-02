@@ -23,6 +23,7 @@ import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.file.FileRangeReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.BeforeAll;
@@ -125,7 +126,7 @@ class PMTilesReaderTest {
             assertTrue(metadata.contains("vector_layers"));
 
             // Test metadata object parsing
-            PMTilesMetadata metadataObj = reader.getMetadataObject();
+            PMTilesMetadata metadataObj = reader.getMetadata();
             assertNotNull(metadataObj);
 
             // Verify parsed metadata fields
@@ -158,7 +159,7 @@ class PMTilesReaderTest {
             // Test tile 0/0/0 - should exist (root tile)
             var tile000 = reader.getTile(0, 0, 0);
             assertTrue(tile000.isPresent(), "Tile 0/0/0 should exist");
-            assertTrue(tile000.get().length > 0, "Tile 0/0/0 should have data");
+            assertTrue(tile000.get().remaining() > 0, "Tile 0/0/0 should have data");
 
             // Test a second tile that should exist - use different zoom level
             // Since coordinate validation is strict, use zoom 1 where 1/1/0 is valid
@@ -167,7 +168,7 @@ class PMTilesReaderTest {
             // Test tile 1/1/0 - should exist (confirmed by pmtiles command)
             var tile110 = reader.getTile(1, 1, 0);
             assertTrue(tile110.isPresent(), "Tile 1/1/0 should exist");
-            assertTrue(tile110.get().length > 0, "Tile 1/1/0 should have data");
+            assertTrue(tile110.get().remaining() > 0, "Tile 1/1/0 should have data");
         }
     }
 
@@ -312,13 +313,13 @@ class PMTilesReaderTest {
             var tile = reader.getTile(0, 0, 0);
             assertTrue(tile.isPresent(), "Root tile should exist");
 
-            byte[] tileData = tile.get();
-            assertTrue(tileData.length > 0, "Tile should have data");
+            ByteBuffer tileData = tile.get();
+            assertTrue(tileData.remaining() > 0, "Tile should have data");
 
             // For MVT tiles, decompressed data should start with protobuf-like bytes
             // (this is a basic sanity check that decompression worked)
             assertNotNull(tileData, "Decompressed tile data should not be null");
-            assertTrue(tileData.length > 10, "Decompressed tile should be reasonably sized");
+            assertTrue(tileData.remaining() > 10, "Decompressed tile should be reasonably sized");
         }
     }
 }
