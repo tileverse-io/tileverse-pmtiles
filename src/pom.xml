@@ -9,10 +9,10 @@
   </parent>
   <artifactId>tileverse-pmtiles</artifactId>
   <packaging>pom</packaging>
-  <name>Tileverse PMTilesi Modules</name>
+  <name>Tileverse PMTles Modules</name>
 
   <modules>
-    <module>tileverse-pmtiles-reader</module>
     <module>tileverse-vectortiles</module>
+    <module>tileverse-pmtiles-reader</module>
   </modules>
 </project>

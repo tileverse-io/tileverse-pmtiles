@@ -114,7 +114,7 @@
         <artifactId>zstd-jni</artifactId>
         <version>1.5.7-4</version>
       </dependency>
-      
+
       <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
@@ -349,7 +349,6 @@
           <artifactId>protobuf-maven-plugin</artifactId>
           <version>0.6.1</version>
         </plugin>
-        <!-- Code formatting and organization plugins -->
         <plugin>
           <groupId>com.diffplug.spotless</groupId>
           <artifactId>spotless-maven-plugin</artifactId>
@@ -470,13 +469,35 @@
         <inherited>true</inherited>
         <configuration>
           <skip>${spotless.skip}</skip>
+          <!-- Regular Java files with standard license header -->
           <java>
+            <includes>
+              <include>src/**/*.java</include>
+            </includes>
+            <excludes>
+              <exclude>**/vectortile/v2_1/VectorTileEncoder*.java</exclude>
+              <exclude>**/vectortile/v2_1/VectorTileDecoder*.java</exclude>
+              <exclude>**/vectortile/v2_1/Command.java</exclude>
+              <exclude>**/vectortile/v2_1/Filter.java</exclude>
+            </excludes>
             <palantirJavaFormat>
               <version>2.61.0</version>
             </palantirJavaFormat>
             <licenseHeader>
               <file>${maven.multiModuleProjectDirectory}/license_header.txt</file>
             </licenseHeader>
+          </java>
+          <!-- Imported Java files with custom headers - formatting only, no license header processing -->
+          <java>
+            <includes>
+              <include>**/vectortile/v2_1/VectorTileEncoder*.java</include>
+              <include>**/vectortile/v2_1/VectorTileDecoder*.java</include>
+              <include>**/vectortile/v2_1/Command.java</include>
+              <include>**/vectortile/v2_1/Filter.java</include>
+            </includes>
+            <palantirJavaFormat>
+              <version>2.61.0</version>
+            </palantirJavaFormat>
           </java>
           <upToDateChecking>
             <enabled>true</enabled>
