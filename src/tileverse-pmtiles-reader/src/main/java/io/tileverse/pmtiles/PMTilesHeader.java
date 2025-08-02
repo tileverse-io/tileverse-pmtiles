@@ -15,6 +15,7 @@
  */
 package io.tileverse.pmtiles;
 
+import io.tileverse.rangereader.ByteRange;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -507,5 +508,23 @@ public record PMTilesHeader(
                     centerLonE7,
                     centerLatE7);
         }
+    }
+
+    /**
+     * @return The absolute position and length for a leaf directory entry
+     */
+    ByteRange leafDirDataRange(PMTilesEntry dirEntry) {
+        long offset = leafDirsOffset() + dirEntry.offset();
+        int length = dirEntry.length();
+        return ByteRange.of(offset, length);
+    }
+
+    /**
+     * @return The absolute position and length for a tile data
+     */
+    ByteRange tileDataRange(PMTilesEntry tileEntry) {
+        final long offset = tileDataOffset() + tileEntry.offset();
+        final int length = tileEntry.length();
+        return ByteRange.of(offset, length);
     }
 }

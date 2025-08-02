@@ -38,7 +38,7 @@ jobs:
           
     - name: Build and test (manual trigger only)
       if: ${{ github.event_name == 'workflow_dispatch' }}
-      run: ./mvnw clean verify
+      run: ./mvnw clean verify -U
       
     - name: Publish snapshot
       if: ${{ !contains(github.event.head_commit.message, '[skip-publish]') }}

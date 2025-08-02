@@ -100,7 +100,7 @@ jobs:
         cache: maven
         
     - name: Install dependencies
-      run: ./mvnw clean install -pl src/tileverse-pmtiles-reader -am -DskipTests -ntp
+      run: ./mvnw clean install -pl src/tileverse-pmtiles-reader -am -DskipTests -ntp -U
       
     - name: Run integration tests - ${{ matrix.test-group }} (Java ${{ matrix.java-version }})
       run: make test-${{ matrix.test-group }}-it

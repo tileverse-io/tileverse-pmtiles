@@ -140,4 +140,95 @@ public record PMTilesEntry(
     public int compareTo(PMTilesEntry other) {
         return Long.compare(this.tileId, other.tileId);
     }
+
+    /**
+     * Creates a new builder for constructing PMTilesEntry instances.
+     *
+     * @return a new builder instance
+     */
+    public static Builder builder() {
+        return new Builder();
+    }
+
+    /**
+     * Builder for constructing PMTilesEntry instances incrementally.
+     * This is particularly useful for deserialization where fields are read in separate passes.
+     */
+    public static class Builder {
+        private long tileId = 0;
+        private long offset = 0;
+        private int length = 0;
+        private int runLength = 0;
+
+        /**
+         * Sets the tile ID.
+         *
+         * @param tileId the tile ID
+         * @return this builder for method chaining
+         */
+        public Builder tileId(long tileId) {
+            this.tileId = tileId;
+            return this;
+        }
+
+        /**
+         * Sets the offset.
+         *
+         * @param offset the offset of the tile data or leaf directory
+         * @return this builder for method chaining
+         */
+        public Builder offset(long offset) {
+            this.offset = offset;
+            return this;
+        }
+
+        /**
+         * Sets the length.
+         *
+         * @param length the length of the tile data or leaf directory
+         * @return this builder for method chaining
+         */
+        public Builder length(int length) {
+            this.length = length;
+            return this;
+        }
+
+        /**
+         * Sets the run length.
+         *
+         * @param runLength the number of consecutive tiles with the same content
+         * @return this builder for method chaining
+         */
+        public Builder runLength(int runLength) {
+            this.runLength = runLength;
+            return this;
+        }
+
+        /**
+         * Gets the current offset value.
+         *
+         * @return the current offset
+         */
+        public long getOffset() {
+            return offset;
+        }
+
+        /**
+         * Gets the current length value.
+         *
+         * @return the current length
+         */
+        public int getLength() {
+            return length;
+        }
+
+        /**
+         * Builds the final PMTilesEntry instance.
+         *
+         * @return a new PMTilesEntry with the configured values
+         */
+        public PMTilesEntry build() {
+            return new PMTilesEntry(tileId, offset, length, runLength);
+        }
+    }
 }
