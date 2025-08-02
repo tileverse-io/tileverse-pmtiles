@@ -15,6 +15,8 @@
  */
 package io.tileverse.pmtiles;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.tileverse.jackson.databind.pmtiles.v3.PMTilesMetadata;
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.file.FileRangeReader;
 import io.tileverse.rangereader.nio.ByteBufferPool;
@@ -62,6 +64,7 @@ public class PMTilesReader implements Closeable {
 
     private final RangeReader rangeReader;
     private final PMTilesHeader header;
+    private final ObjectMapper objectMapper;
 
     /**
      * Creates a new PMTilesReader for the specified file.
@@ -86,6 +89,7 @@ public class PMTilesReader implements Closeable {
      */
     public PMTilesReader(RangeReader rangeReader) throws IOException, InvalidHeaderException {
         this.rangeReader = Objects.requireNonNull(rangeReader, "RangeReader cannot be null");
+        this.objectMapper = new ObjectMapper();
 
         // Read the header
         ByteBuffer headerBuffer = ByteBufferPool.getDefault().borrowHeap(127);
@@ -146,10 +150,7 @@ public class PMTilesReader implements Closeable {
         } finally {
             ByteBufferPool.getDefault().returnBuffer(buffer);
         }
-        // Decompress if necessary
-        if (header.tileCompression() != PMTilesHeader.COMPRESSION_NONE) {
-            tileData = CompressionUtil.decompress(tileData, header.tileCompression());
-        }
+        tileData = CompressionUtil.decompress(tileData, header.tileCompression());
         return Optional.of(tileData);
     }
 
@@ -192,6 +193,28 @@ public class PMTilesReader implements Closeable {
     public String getMetadataAsString() throws IOException, CompressionUtil.UnsupportedCompressionException {
         byte[] metadataBytes = getMetadata();
         return new String(metadataBytes, java.nio.charset.StandardCharsets.UTF_8);
+    }
+
+    /**
+     * Gets the metadata as a parsed PMTilesMetadata object.
+     * This provides structured access to the metadata fields with proper type conversion.
+     *
+     * @return the metadata as a PMTilesMetadata object
+     * @throws IOException if an I/O error occurs or JSON parsing fails
+     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     */
+    public PMTilesMetadata getMetadataObject() throws IOException, CompressionUtil.UnsupportedCompressionException {
+        byte[] metadataBytes = getMetadata();
+        if (metadataBytes.length == 0) {
+            // Return empty metadata if no metadata is present
+            return PMTilesMetadata.of(null);
+        }
+
+        try {
+            return objectMapper.readValue(metadataBytes, PMTilesMetadata.class);
+        } catch (Exception e) {
+            throw new IOException("Failed to parse PMTiles metadata JSON", e);
+        }
     }
 
     /**

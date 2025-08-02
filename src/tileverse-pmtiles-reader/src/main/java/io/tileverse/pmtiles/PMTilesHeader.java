@@ -25,6 +25,31 @@ import java.util.Arrays;
 /**
  * Represents the header of a PMTiles file, based on version 3 of the PMTiles specification.
  * The header is a fixed-length structure of 127 bytes containing metadata and offsets.
+ *
+ * @param rootDirOffset the byte offset from the start of the archive to the first byte of the root directory
+ * @param rootDirBytes the number of bytes in the root directory
+ * @param jsonMetadataOffset the byte offset from the start of the archive to the first byte of the JSON metadata
+ * @param jsonMetadataBytes the number of bytes of JSON metadata
+ * @param leafDirsOffset the byte offset from the start of the archive to the first byte of leaf directories
+ * @param leafDirsBytes the total number of bytes of leaf directories
+ * @param tileDataOffset the byte offset from the start of the archive to the first byte of tile data
+ * @param tileDataBytes the total number of bytes of tile data
+ * @param addressedTilesCount the total number of tiles before Run Length Encoding, or 0 if unknown
+ * @param tileEntriesCount the total number of tile entries where RunLength > 0, or 0 if unknown
+ * @param tileContentsCount the total number of blobs in the tile data section, or 0 if unknown
+ * @param clustered whether the tiles in the tile data section are ordered by TileID
+ * @param internalCompression the compression type used for directories and metadata (see COMPRESSION_* constants)
+ * @param tileCompression the compression type used for individual tiles (see COMPRESSION_* constants)
+ * @param tileType the type of tiles stored in this archive (see TILETYPE_* constants)
+ * @param minZoom the minimum zoom level of tiles in this archive (0-30)
+ * @param maxZoom the maximum zoom level of tiles in this archive (0-30, must be >= minZoom)
+ * @param minLonE7 the minimum longitude of the bounding box in E7 format (longitude * 10,000,000)
+ * @param minLatE7 the minimum latitude of the bounding box in E7 format (latitude * 10,000,000)
+ * @param maxLonE7 the maximum longitude of the bounding box in E7 format (longitude * 10,000,000)
+ * @param maxLatE7 the maximum latitude of the bounding box in E7 format (latitude * 10,000,000)
+ * @param centerZoom the initial recommended zoom level for displaying the tileset
+ * @param centerLonE7 the center longitude for displaying the tileset in E7 format (longitude * 10,000,000)
+ * @param centerLatE7 the center latitude for displaying the tileset in E7 format (latitude * 10,000,000)
  */
 public record PMTilesHeader(
         long rootDirOffset,
@@ -77,6 +102,54 @@ public record PMTilesHeader(
      */
     public byte version() {
         return VERSION;
+    }
+
+    /**
+     * Returns the minimum longitude as a double value.
+     * @return The minimum longitude in decimal degrees
+     */
+    public double minLon() {
+        return minLonE7 / 10_000_000.0;
+    }
+
+    /**
+     * Returns the minimum latitude as a double value.
+     * @return The minimum latitude in decimal degrees
+     */
+    public double minLat() {
+        return minLatE7 / 10_000_000.0;
+    }
+
+    /**
+     * Returns the maximum longitude as a double value.
+     * @return The maximum longitude in decimal degrees
+     */
+    public double maxLon() {
+        return maxLonE7 / 10_000_000.0;
+    }
+
+    /**
+     * Returns the maximum latitude as a double value.
+     * @return The maximum latitude in decimal degrees
+     */
+    public double maxLat() {
+        return maxLatE7 / 10_000_000.0;
+    }
+
+    /**
+     * Returns the center longitude as a double value.
+     * @return The center longitude in decimal degrees
+     */
+    public double centerLon() {
+        return centerLonE7 / 10_000_000.0;
+    }
+
+    /**
+     * Returns the center latitude as a double value.
+     * @return The center latitude in decimal degrees
+     */
+    public double centerLat() {
+        return centerLatE7 / 10_000_000.0;
     }
 
     /**

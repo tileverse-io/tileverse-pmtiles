@@ -18,6 +18,7 @@ package io.tileverse.pmtiles;
 import static java.util.Objects.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import io.tileverse.jackson.databind.pmtiles.v3.PMTilesMetadata;
 import io.tileverse.rangereader.RangeReader;
 import io.tileverse.rangereader.file.FileRangeReader;
 import java.io.IOException;
@@ -86,19 +87,19 @@ class PMTilesReaderTest {
             assertEquals(3, header.version());
             assertEquals(PMTilesHeader.TILETYPE_MVT, header.tileType());
 
-            // Test bounds (convert E7 to decimal)
-            assertEquals(1.412368, header.minLonE7() / 10_000_000.0, 0.000001);
-            assertEquals(42.427600, header.minLatE7() / 10_000_000.0, 0.000001);
-            assertEquals(1.787481, header.maxLonE7() / 10_000_000.0, 0.000001);
-            assertEquals(42.657170, header.maxLatE7() / 10_000_000.0, 0.000001);
+            // Test bounds (using utility methods)
+            assertEquals(1.412368, header.minLon(), 0.000001);
+            assertEquals(42.427600, header.minLat(), 0.000001);
+            assertEquals(1.787481, header.maxLon(), 0.000001);
+            assertEquals(42.657170, header.maxLat(), 0.000001);
 
             // Test zoom levels
             assertEquals(0, header.minZoom());
             assertEquals(14, header.maxZoom());
 
             // Test center
-            assertEquals(1.599924, header.centerLonE7() / 10_000_000.0, 0.000001);
-            assertEquals(42.542385, header.centerLatE7() / 10_000_000.0, 0.000001);
+            assertEquals(1.599924, header.centerLon(), 0.000001);
+            assertEquals(42.542385, header.centerLat(), 0.000001);
             assertEquals(10, header.centerZoom());
 
             // Test tile counts
@@ -122,6 +123,28 @@ class PMTilesReaderTest {
             assertTrue(metadata.contains("baselayer"));
             assertTrue(metadata.contains("planetiler"));
             assertTrue(metadata.contains("vector_layers"));
+
+            // Test metadata object parsing
+            PMTilesMetadata metadataObj = reader.getMetadataObject();
+            assertNotNull(metadataObj);
+
+            // Verify parsed metadata fields
+            assertNotNull(metadataObj.attribution());
+            assertTrue(metadataObj.attribution().contains("OpenStreetMap contributors"));
+
+            assertNotNull(metadataObj.vectorLayers());
+            assertFalse(metadataObj.vectorLayers().isEmpty());
+
+            // Check that we have some expected vector layers
+            boolean hasLandLayer = metadataObj.vectorLayers().stream().anyMatch(layer -> "land".equals(layer.id()));
+            boolean hasWaterLayer = metadataObj.vectorLayers().stream()
+                    .anyMatch(layer -> "water".equals(layer.id()) || "ocean".equals(layer.id()));
+
+            // At least one of these layers should exist in the Shortbread schema
+            assertTrue(hasLandLayer || hasWaterLayer, "Should have land or water layer");
+
+            // Note: PMTiles metadata doesn't define minZoom/maxZoom fields
+            // Those are in the header, not the metadata JSON
         }
     }
 
@@ -223,8 +246,8 @@ class PMTilesReaderTest {
             int centerZoom = header.centerZoom();
             if (centerZoom >= minZoom && centerZoom <= header.maxZoom()) {
                 // Calculate center tile coordinates at center zoom
-                double centerLon = header.centerLonE7() / 10_000_000.0;
-                double centerLat = header.centerLatE7() / 10_000_000.0;
+                double centerLon = header.centerLon();
+                double centerLat = header.centerLat();
 
                 // Simple tile coordinate calculation (Web Mercator)
                 int tilesAtZoom = 1 << centerZoom;
@@ -241,6 +264,36 @@ class PMTilesReaderTest {
                 // so we don't assert its existence, just that the call works
                 assertNotNull(centerTile, "Center tile query should return a result (even if empty)");
             }
+        }
+    }
+
+    /**
+     * Test utility methods for converting E7 encoded coordinates to doubles.
+     */
+    @Test
+    void testCoordinateUtilityMethods() throws Exception {
+        try (PMTilesReader reader = new PMTilesReader(getAndorraRangeReader())) {
+            PMTilesHeader header = reader.getHeader();
+
+            // Test that utility methods match manual E7 conversion
+            assertEquals(header.minLonE7() / 10_000_000.0, header.minLon(), 0.0000001);
+            assertEquals(header.minLatE7() / 10_000_000.0, header.minLat(), 0.0000001);
+            assertEquals(header.maxLonE7() / 10_000_000.0, header.maxLon(), 0.0000001);
+            assertEquals(header.maxLatE7() / 10_000_000.0, header.maxLat(), 0.0000001);
+            assertEquals(header.centerLonE7() / 10_000_000.0, header.centerLon(), 0.0000001);
+            assertEquals(header.centerLatE7() / 10_000_000.0, header.centerLat(), 0.0000001);
+
+            // Test reasonable coordinate ranges for Andorra
+            assertTrue(header.minLon() > 0 && header.minLon() < 3, "Min longitude should be reasonable for Andorra");
+            assertTrue(header.minLat() > 40 && header.minLat() < 45, "Min latitude should be reasonable for Andorra");
+            assertTrue(header.maxLon() > header.minLon(), "Max longitude should be greater than min");
+            assertTrue(header.maxLat() > header.minLat(), "Max latitude should be greater than min");
+            assertTrue(
+                    header.centerLon() >= header.minLon() && header.centerLon() <= header.maxLon(),
+                    "Center longitude should be within bounds");
+            assertTrue(
+                    header.centerLat() >= header.minLat() && header.centerLat() <= header.maxLat(),
+                    "Center latitude should be within bounds");
         }
     }
 
