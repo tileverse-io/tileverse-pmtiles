@@ -304,7 +304,7 @@ class PMTilesMetadataTest {
         try (RangeReader rangeReader = FileRangeReader.of(andorraPmTiles);
                 PMTilesReader pmtilesReader = new PMTilesReader(rangeReader)) {
 
-            PMTilesMetadata metadata = pmtilesReader.getMetadataObject();
+            PMTilesMetadata metadata = pmtilesReader.getMetadata();
             assertNotNull(metadata);
 
             // Verify basic metadata fields that should be present per PMTiles spec

@@ -15,12 +15,12 @@
  */
 package io.tileverse.pmtiles;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -28,6 +28,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -60,8 +61,7 @@ public class PMTilesWriterTest {
     }
 
     @Test
-    void testWriteAndReadSingleTile()
-            throws IOException, CompressionUtil.UnsupportedCompressionException, InvalidHeaderException {
+    void testWriteAndReadSingleTile() throws IOException, UnsupportedCompressionException, InvalidHeaderException {
         // Create sample tile data
         byte[] tileData = "Sample tile data".getBytes(StandardCharsets.UTF_8);
 
@@ -93,15 +93,14 @@ public class PMTilesWriterTest {
             assertEquals(1, header.addressedTilesCount());
 
             // Read the tile
-            Optional<byte[]> readTileData = reader.getTile(0, 0, 0);
+            Optional<ByteBuffer> readTileData = reader.getTile(0, 0, 0);
             assertTrue(readTileData.isPresent());
             assertArrayEquals(tileData, readTileData.get());
         }
     }
 
     @Test
-    void testWriteAndReadMultipleTiles()
-            throws IOException, CompressionUtil.UnsupportedCompressionException, InvalidHeaderException {
+    void testWriteAndReadMultipleTiles() throws IOException, UnsupportedCompressionException, InvalidHeaderException {
         // Create sample tile data
         byte[] tileData1 = "Tile data 1".getBytes(StandardCharsets.UTF_8);
         byte[] tileData2 = "Tile data 2".getBytes(StandardCharsets.UTF_8);
@@ -133,9 +132,9 @@ public class PMTilesWriterTest {
             assertEquals(2, header.tileContentsCount());
 
             // Read the tiles
-            Optional<byte[]> readTileData1 = reader.getTile(0, 0, 0);
-            Optional<byte[]> readTileData2 = reader.getTile(1, 0, 0);
-            Optional<byte[]> readTileData3 = reader.getTile(1, 0, 1);
+            Optional<ByteBuffer> readTileData1 = reader.getTile(0, 0, 0);
+            Optional<ByteBuffer> readTileData2 = reader.getTile(1, 0, 0);
+            Optional<ByteBuffer> readTileData3 = reader.getTile(1, 0, 1);
 
             assertTrue(readTileData1.isPresent());
             assertTrue(readTileData2.isPresent());
@@ -151,7 +150,7 @@ public class PMTilesWriterTest {
     }
 
     @Test
-    void testSetMetadata() throws IOException, CompressionUtil.UnsupportedCompressionException, InvalidHeaderException {
+    void testSetMetadata() throws IOException, UnsupportedCompressionException, InvalidHeaderException {
         // Create sample tile data and metadata
         byte[] tileData = "Sample tile data".getBytes(StandardCharsets.UTF_8);
         String metadata = "{\"name\":\"Test Tileset\",\"version\":\"1.0\"}";
@@ -172,8 +171,7 @@ public class PMTilesWriterTest {
 
         // Read the file back and verify the metadata
         try (PMTilesReader reader = new PMTilesReader(outputPath)) {
-            byte[] readMetadata = reader.getMetadata();
-            String metadataString = new String(readMetadata, StandardCharsets.UTF_8);
+            String metadataString = reader.getMetadataAsString();
 
             // Verify metadata content
             assertEquals(metadata, metadataString);
@@ -213,5 +211,20 @@ public class PMTilesWriterTest {
         // Verify progress reporting
         assertTrue(progressReported.get());
         assertEquals(1.0, lastProgress.get(), 0.001);
+    }
+
+    private void assertArrayEquals(ByteBuffer expected, ByteBuffer actual) {
+        assertArrayEquals(bytes(expected), actual);
+    }
+
+    private void assertArrayEquals(byte[] expected, ByteBuffer actual) {
+        byte[] byteBuffer = bytes(actual);
+        Assertions.assertArrayEquals(expected, byteBuffer);
+    }
+
+    private byte[] bytes(ByteBuffer buffer) {
+        byte[] byteBuffer = new byte[buffer.remaining()];
+        buffer.get(byteBuffer);
+        return byteBuffer;
     }
 }

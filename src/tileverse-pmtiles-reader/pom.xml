@@ -23,6 +23,10 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-compress</artifactId>
     </dependency>
+    <dependency>
+      <groupId>com.github.luben</groupId>
+      <artifactId>zstd-jni</artifactId>
+    </dependency>
 
     <dependency>
       <groupId>io.tileverse.pmtiles</groupId>

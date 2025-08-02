@@ -21,6 +21,7 @@ import io.tileverse.rangereader.file.FileRangeReader;
 import io.tileverse.rangereader.http.HttpRangeReader;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.ByteBuffer;
 import java.nio.file.Path;
 import java.util.Optional;
 import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
@@ -46,7 +47,7 @@ public class PMTilesReaderExample {
      * Example of reading from a local file.
      */
     public static void readFromLocalFile(Path path)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create a FileRangeReader directly
         try (RangeReader reader = FileRangeReader.of(path);
                 PMTilesReader pmtiles = new PMTilesReader(reader)) {
@@ -60,10 +61,10 @@ public class PMTilesReaderExample {
             int z = 0;
             int x = 0;
             int y = 0;
-            Optional<byte[]> tileData = pmtiles.getTile(z, x, y);
+            Optional<ByteBuffer> tileData = pmtiles.getTile(z, x, y);
             if (tileData.isPresent()) {
                 System.out.println("Found tile at z/x/y: " + z + "/" + x + "/" + y);
-                System.out.println("Tile size: " + tileData.get().length + " bytes");
+                System.out.println("Tile size: " + tileData.get().remaining() + " bytes");
             } else {
                 System.out.println("Tile not found at z/x/y: " + z + "/" + x + "/" + y);
             }
@@ -74,7 +75,7 @@ public class PMTilesReaderExample {
      * Example of reading from a HTTP source.
      */
     public static void readFromHttp(String url)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create an HttpRangeReader
         URI uri = URI.create(url);
         try (RangeReader reader = HttpRangeReader.builder(uri).build();
@@ -89,10 +90,10 @@ public class PMTilesReaderExample {
             int z = 0;
             int x = 0;
             int y = 0;
-            Optional<byte[]> tileData = pmtiles.getTile(z, x, y);
+            Optional<ByteBuffer> tileData = pmtiles.getTile(z, x, y);
             if (tileData.isPresent()) {
                 System.out.println("Found tile at z/x/y: " + z + "/" + x + "/" + y);
-                System.out.println("Tile size: " + tileData.get().length + " bytes");
+                System.out.println("Tile size: " + tileData.get().remaining() + " bytes");
             } else {
                 System.out.println("Tile not found at z/x/y: " + z + "/" + x + "/" + y);
             }
@@ -103,7 +104,7 @@ public class PMTilesReaderExample {
      * Example of reading from AWS S3 with caching enabled.
      */
     public static void readFromS3(String bucket, String key)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create a S3 URI
         URI uri = URI.create("s3://" + bucket + "/" + key);
 
@@ -124,10 +125,10 @@ public class PMTilesReaderExample {
             int z = 0;
             int x = 0;
             int y = 0;
-            Optional<byte[]> tileData = pmtiles.getTile(z, x, y);
+            Optional<ByteBuffer> tileData = pmtiles.getTile(z, x, y);
             if (tileData.isPresent()) {
                 System.out.println("Found tile at z/x/y: " + z + "/" + x + "/" + y);
-                System.out.println("Tile size: " + tileData.get().length + " bytes");
+                System.out.println("Tile size: " + tileData.get().remaining() + " bytes");
             } else {
                 System.out.println("Tile not found at z/x/y: " + z + "/" + x + "/" + y);
             }
@@ -138,7 +139,7 @@ public class PMTilesReaderExample {
      * Example of reading from AWS S3 with custom credentials and region.
      */
     public static void readFromS3WithCustomAuth(String bucket, String key)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create a custom S3 reader with specific region and credentials
         RangeReader reader = RangeReaderFactory.createS3RangeReader(
                 URI.create("s3://" + bucket + "/" + key), DefaultCredentialsProvider.create(), Region.US_WEST_2);
@@ -157,7 +158,7 @@ public class PMTilesReaderExample {
      * Example of reading from Azure Blob Storage with caching and custom block size.
      */
     public static void readFromAzure(String account, String container, String blob)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create an Azure blob URI
         URI uri = URI.create("azure://" + account + ".blob.core.windows.net/" + container + "/" + blob);
 
@@ -179,10 +180,10 @@ public class PMTilesReaderExample {
             int z = 0;
             int x = 0;
             int y = 0;
-            Optional<byte[]> tileData = pmtiles.getTile(z, x, y);
+            Optional<ByteBuffer> tileData = pmtiles.getTile(z, x, y);
             if (tileData.isPresent()) {
                 System.out.println("Found tile at z/x/y: " + z + "/" + x + "/" + y);
-                System.out.println("Tile size: " + tileData.get().length + " bytes");
+                System.out.println("Tile size: " + tileData.get().remaining() + " bytes");
             } else {
                 System.out.println("Tile not found at z/x/y: " + z + "/" + x + "/" + y);
             }
@@ -193,7 +194,7 @@ public class PMTilesReaderExample {
      * Example of reading from Azure Blob Storage with connection string.
      */
     public static void readFromAzureWithConnectionString(String connectionString, String container, String blob)
-            throws IOException, InvalidHeaderException, CompressionUtil.UnsupportedCompressionException {
+            throws IOException, InvalidHeaderException, UnsupportedCompressionException {
         // Create an Azure reader with connection string
         RangeReader reader = RangeReaderFactory.createAzureBlobRangeReader(connectionString, container, blob);
 

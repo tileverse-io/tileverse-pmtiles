@@ -20,14 +20,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.ByteBuffer;
 import org.apache.commons.compress.compressors.CompressorException;
-import org.apache.commons.compress.compressors.CompressorInputStream;
+import org.apache.commons.compress.compressors.brotli.BrotliCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorOutputStream;
-import org.apache.commons.compress.utils.IOUtils;
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorInputStream;
+import org.apache.commons.compress.compressors.zstandard.ZstdCompressorOutputStream;
+import org.apache.commons.io.IOUtils;
 
 /**
- * Utility class for compressing and decompressing data using various compression algorithms.
+ * Utility class for compressing and decompressing data using various
+ * compression algorithms.
  */
 public final class CompressionUtil {
 
@@ -38,11 +42,12 @@ public final class CompressionUtil {
     /**
      * Compresses data using the specified compression type.
      *
-     * @param data the data to compress
+     * @param data            the data to compress
      * @param compressionType the compression type to use
      * @return the compressed data
-     * @throws IOException if an I/O error occurs
-     * @throws UnsupportedCompressionException if the compression type is not supported
+     * @throws IOException                     if an I/O error occurs
+     * @throws UnsupportedCompressionException if the compression type is not
+     *                                         supported
      */
     public static byte[] compress(byte[] data, byte compressionType)
             throws IOException, UnsupportedCompressionException {
@@ -59,94 +64,103 @@ public final class CompressionUtil {
         return outputStream.toByteArray();
     }
 
+    public static ByteBuffer decompress(ByteBuffer buffer, byte compression)
+            throws UnsupportedCompressionException, IOException {
+
+        final int compressedLength = buffer.remaining();
+
+        if (buffer.hasArray()) {
+            final int offset = buffer.position();
+            final byte[] compressed = buffer.array();
+            return decompress(compressed, offset, compressedLength, compression);
+        }
+
+        byte[] compressed = new byte[compressedLength];
+        buffer.get(compressed);
+        return decompress(compressed, 0, compressedLength, compression);
+    }
+
     /**
      * Decompresses data using the specified compression type.
      *
-     * @param data the data to decompress
+     * @param data            the data to decompress
      * @param compressionType the compression type used
      * @return the decompressed data
-     * @throws IOException if an I/O error occurs
-     * @throws UnsupportedCompressionException if the compression type is not supported
+     * @throws IOException                     if an I/O error occurs
+     * @throws UnsupportedCompressionException if the compression type is not
+     *                                         supported
      */
-    public static byte[] decompress(byte[] data, byte compressionType)
+    public static ByteBuffer decompress(byte[] data, int offset, int length, byte compressionType)
             throws IOException, UnsupportedCompressionException {
         if (compressionType == PMTilesHeader.COMPRESSION_NONE) {
-            return data;
+            return ByteBuffer.wrap(data);
         }
 
-        ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(data, offset, length);
+        ByteArrayOutputStreamInternal outputStream = new ByteArrayOutputStreamInternal(4 * length);
 
-        try (CompressorInputStream decompressor = createDecompressor(inputStream, compressionType)) {
+        try (InputStream decompressor = createDecompressor(inputStream, compressionType)) {
             IOUtils.copy(decompressor, outputStream);
         } catch (CompressorException e) {
             throw new IOException("Failed to create decompressor", e);
         }
 
-        return outputStream.toByteArray();
+        ByteBuffer ret = ByteBuffer.wrap(outputStream.bytes()).limit(outputStream.size());
+        return ret;
+    }
+
+    private static class ByteArrayOutputStreamInternal extends ByteArrayOutputStream {
+        ByteArrayOutputStreamInternal(int initialSize) {
+            super(initialSize);
+        }
+
+        public byte[] bytes() {
+            return super.buf;
+        }
     }
 
     /**
      * Creates a compressor for the specified compression type.
      *
-     * @param outputStream the output stream to write compressed data to
+     * @param outputStream    the output stream to write compressed data to
      * @param compressionType the compression type to use
      * @return a compressor output stream
-     * @throws IOException if an I/O error occurs
-     * @throws UnsupportedCompressionException if the compression type is not supported
+     * @throws IOException                     if an I/O error occurs
+     * @throws UnsupportedCompressionException if the compression type is not
+     *                                         supported
      */
     private static OutputStream createCompressor(OutputStream outputStream, byte compressionType)
             throws IOException, UnsupportedCompressionException {
-        switch (compressionType) {
-            case PMTilesHeader.COMPRESSION_GZIP:
-                return new GzipCompressorOutputStream(outputStream);
-            case PMTilesHeader.COMPRESSION_NONE:
-                return outputStream;
-            case PMTilesHeader.COMPRESSION_BROTLI:
-            // Brotli implementation would go here
-            case PMTilesHeader.COMPRESSION_ZSTD:
-            // ZSTD implementation would go here
-            default:
+        return switch (compressionType) {
+            case PMTilesHeader.COMPRESSION_NONE -> outputStream;
+            case PMTilesHeader.COMPRESSION_GZIP -> new GzipCompressorOutputStream(outputStream);
+            case PMTilesHeader.COMPRESSION_ZSTD -> new ZstdCompressorOutputStream(outputStream);
+            case PMTilesHeader.COMPRESSION_BROTLI ->
                 throw new UnsupportedCompressionException("Compression type not supported: " + compressionType);
-        }
+            default -> throw new UnsupportedCompressionException("Compression type not supported: " + compressionType);
+        };
     }
 
     /**
      * Creates a decompressor for the specified compression type.
      *
-     * @param inputStream the input stream containing compressed data
+     * @param inputStream     the input stream containing compressed data
      * @param compressionType the compression type used
      * @return a decompressor input stream
-     * @throws IOException if an I/O error occurs
-     * @throws CompressorException if the compressor creation fails
-     * @throws UnsupportedCompressionException if the compression type is not supported
+     * @throws IOException                     if an I/O error occurs
+     * @throws CompressorException             if the compressor creation fails
+     * @throws UnsupportedCompressionException if the compression type is not
+     *                                         supported
      */
-    private static CompressorInputStream createDecompressor(InputStream inputStream, byte compressionType)
+    private static InputStream createDecompressor(InputStream inputStream, byte compressionType)
             throws IOException, CompressorException, UnsupportedCompressionException {
-        switch (compressionType) {
-            case PMTilesHeader.COMPRESSION_GZIP:
-                return new GzipCompressorInputStream(inputStream, true);
-            case PMTilesHeader.COMPRESSION_NONE:
+        return switch (compressionType) {
+            case PMTilesHeader.COMPRESSION_NONE ->
                 throw new IllegalArgumentException("Cannot create decompressor for COMPRESSION_NONE");
-            case PMTilesHeader.COMPRESSION_BROTLI:
-            // Brotli implementation would go here
-            case PMTilesHeader.COMPRESSION_ZSTD:
-            // ZSTD implementation would go here
-            default:
-                throw new UnsupportedCompressionException("Compression type not supported: " + compressionType);
-        }
-    }
-
-    /**
-     * Exception thrown when an unsupported compression type is used.
-     */
-    public static class UnsupportedCompressionException extends Exception {
-        public UnsupportedCompressionException(String message) {
-            super(message);
-        }
-
-        public UnsupportedCompressionException(String message, Throwable cause) {
-            super(message, cause);
-        }
+            case PMTilesHeader.COMPRESSION_GZIP -> new GzipCompressorInputStream(inputStream);
+            case PMTilesHeader.COMPRESSION_ZSTD -> new ZstdCompressorInputStream(inputStream);
+            case PMTilesHeader.COMPRESSION_BROTLI -> new BrotliCompressorInputStream(inputStream);
+            default -> throw new UnsupportedCompressionException("Compression type not supported: " + compressionType);
+        };
     }
 }

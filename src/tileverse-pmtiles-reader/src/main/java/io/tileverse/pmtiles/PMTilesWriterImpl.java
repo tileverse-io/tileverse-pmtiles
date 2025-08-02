@@ -140,7 +140,7 @@ class PMTilesWriterImpl implements PMTilesWriter {
         if (tileCompression != PMTilesHeader.COMPRESSION_NONE) {
             try {
                 processedData = CompressionUtil.compress(data, tileCompression);
-            } catch (CompressionUtil.UnsupportedCompressionException e) {
+            } catch (UnsupportedCompressionException e) {
                 throw new IOException("Failed to compress tile data", e);
             }
         }
@@ -158,7 +158,7 @@ class PMTilesWriterImpl implements PMTilesWriter {
         byte[] metadataBytes = metadata.getBytes(StandardCharsets.UTF_8);
         try {
             this.compressedMetadata = CompressionUtil.compress(metadataBytes, internalCompression);
-        } catch (CompressionUtil.UnsupportedCompressionException e) {
+        } catch (UnsupportedCompressionException e) {
             throw new IOException("Failed to compress metadata", e);
         }
     }
@@ -175,7 +175,7 @@ class PMTilesWriterImpl implements PMTilesWriter {
         try {
             writePMTilesFile();
             completed = true;
-        } catch (CompressionUtil.UnsupportedCompressionException e) {
+        } catch (UnsupportedCompressionException e) {
             throw new IOException("Failed to compress data", e);
         }
     }
@@ -194,9 +194,9 @@ class PMTilesWriterImpl implements PMTilesWriter {
      * Writes the PMTiles file to disk.
      *
      * @throws IOException if an I/O error occurs
-     * @throws CompressionUtil.UnsupportedCompressionException if the compression type is not supported
+     * @throws UnsupportedCompressionException if the compression type is not supported
      */
-    private void writePMTilesFile() throws IOException, CompressionUtil.UnsupportedCompressionException {
+    private void writePMTilesFile() throws IOException, UnsupportedCompressionException {
         // Report progress
         reportProgress(0.0);
 
