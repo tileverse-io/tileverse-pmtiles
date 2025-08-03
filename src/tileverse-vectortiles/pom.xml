@@ -8,17 +8,11 @@
     <version>${revision}</version>
   </parent>
 
-  <artifactId>tileverse-mvt</artifactId>
-  <name>Tileverse - MVT</name>
+  <artifactId>tileverse-vectortiles</artifactId>
+  <name>Tileverse - Vector Tiles</name>
   <description>Vector tile encoding/decoding for Tileverse</description>
 
   <dependencies>
-    <!-- Internal modules -->
-    <dependency>
-      <groupId>io.tileverse.pmtiles</groupId>
-      <artifactId>tileverse-pmtiles-reader</artifactId>
-    </dependency>
-
     <!-- JTS Topology Suite -->
     <dependency>
       <groupId>org.locationtech.jts</groupId>

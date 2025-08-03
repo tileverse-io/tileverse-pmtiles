@@ -13,6 +13,6 @@
 
   <modules>
     <module>tileverse-pmtiles-reader</module>
-    <module>tileverse-mvt</module>
+    <module>tileverse-vectortiles</module>
   </modules>
 </project>
