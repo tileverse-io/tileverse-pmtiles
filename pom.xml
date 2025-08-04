@@ -31,6 +31,7 @@
   <modules>
     <module>test-data</module>
     <module>src</module>
+    <module>coverage-report</module>
   </modules>
 
   <scm>
@@ -86,6 +87,7 @@
     <wiremock.version>3.13.1</wiremock.version>
     <awaitility.version>4.3.0</awaitility.version>
     <testcontainers.version>1.21.2</testcontainers.version>
+    <jacoco.version>0.8.12</jacoco.version>
   </properties>
 
   <dependencyManagement>
@@ -129,7 +131,7 @@
       </dependency>
       <dependency>
         <groupId>io.tileverse.pmtiles</groupId>
-        <artifactId>tileverse-mvt</artifactId>
+        <artifactId>tileverse-vectortiles</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
@@ -385,6 +387,11 @@
           <artifactId>maven-gpg-plugin</artifactId>
           <version>3.2.8</version>
         </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>${jacoco.version}</version>
+        </plugin>
       </plugins>
     </pluginManagement>
 
@@ -549,8 +556,44 @@
           <waitUntil>published</waitUntil>
           <excludeArtifacts>
             <excludeArtifact>tileverse-pmtiles-test-data</excludeArtifact>
+            <excludeArtifact>tileverse-pmtiles-coverage-report</excludeArtifact>
           </excludeArtifacts>
         </configuration>
+      </plugin>
+
+      <!-- Code Coverage with JaCoCo -->
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <inherited>true</inherited>
+        <executions>
+          <execution>
+            <id>prepare-agent</id>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>prepare-agent-integration</id>
+            <goals>
+              <goal>prepare-agent-integration</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>report</id>
+            <goals>
+              <goal>report</goal>
+            </goals>
+            <phase>test</phase>
+          </execution>
+          <execution>
+            <id>report-integration</id>
+            <goals>
+              <goal>report-integration</goal>
+            </goals>
+            <phase>post-integration-test</phase>
+          </execution>
+        </executions>
       </plugin>
 
       <!-- GPG Signing (only when publishing) -->
@@ -605,6 +648,45 @@
         <spotless.skip>true</spotless.skip>
         <sortpom.skip>true</sortpom.skip>
       </properties>
+    </profile>
+    <!-- Coverage reporting profile -->
+    <profile>
+      <id>coverage</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+        <property>
+          <name>coverage</name>
+        </property>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>merge-results</id>
+                <goals>
+                  <goal>merge</goal>
+                </goals>
+                <phase>verify</phase>
+                <configuration>
+                  <fileSets>
+                    <fileSet>
+                      <directory>${project.basedir}</directory>
+                      <includes>
+                        <include>**/target/jacoco.exec</include>
+                        <include>**/target/jacoco-it.exec</include>
+                      </includes>
+                    </fileSet>
+                  </fileSets>
+                  <destFile>${project.build.directory}/jacoco-merged.exec</destFile>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
