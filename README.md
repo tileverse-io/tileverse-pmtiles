@@ -30,7 +30,7 @@ Add the following dependency to your Maven project:
 ```xml
 <dependency>
     <groupId>io.tileverse.pmtiles</groupId>
-    <artifactId>tileverse-pmtiles-reader</artifactId>
+    <artifactId>tileverse-pmtiles</artifactId>
     <version>1.0-SNAPSHOT</version>
 </dependency>
 ```
@@ -118,9 +118,9 @@ For more detailed information, see the documentation:
 
 This library consists of focused modules for PMTiles functionality:
 
-- **tileverse-pmtiles-reader**: Core PMTiles reading and writing implementation
-- **tileverse-cli**: Command-line tools for PMTiles operations  
-- **tileverse-mvt**: Support for Mapbox Vector Tiles (planned)
+- **tileverse-pmtiles**: Core PMTiles reading and writing implementation
+- **tileverse-vectortiles**: Support for Mapbox Vector Tiles (planned)
+- **tileverse-tilepyramid**: Generic object model for defining tile pyramids and tiling schemes
 
 The library depends on [Tileverse Range Reader](https://github.com/tileverse-io/tileverse-rangereader) for efficient data access from multiple sources including local files, HTTP servers, and cloud storage.
 

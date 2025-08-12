@@ -7,14 +7,14 @@
     <artifactId>tileverse-pmtiles-parent</artifactId>
     <version>${revision}</version>
   </parent>
-  <artifactId>tileverse-pmtiles</artifactId>
+  <artifactId>tileverse-pmtiles-modules</artifactId>
   <packaging>pom</packaging>
   <name>Tileverse PMTles Modules</name>
 
   <modules>
     <module>tileverse-vectortiles</module>
     <module>tileverse-tilepyramid</module>
-    <module>tileverse-pmtiles-reader</module>
+    <module>tileverse-pmtiles</module>
   </modules>
 
 </project>

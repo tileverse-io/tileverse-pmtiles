@@ -19,7 +19,7 @@ The library follows a focused modular design:
 
 ### Core Components
 
-1. **tileverse-pmtiles-reader**: Core PMTiles implementation
+1. **tileverse-pmtiles**: Core PMTiles implementation
    - PMTiles format reading and writing
    - Integration with tileverse-rangereader
    - Spatial indexing and tile lookup
