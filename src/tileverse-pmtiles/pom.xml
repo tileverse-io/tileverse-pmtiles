@@ -4,13 +4,13 @@
 
   <parent>
     <groupId>io.tileverse.pmtiles</groupId>
-    <artifactId>tileverse-pmtiles</artifactId>
+    <artifactId>tileverse-pmtiles-modules</artifactId>
     <version>${revision}</version>
   </parent>
 
-  <artifactId>tileverse-pmtiles-reader</artifactId>
-  <name>Tileverse - Core</name>
-  <description>Core PMTiles format implementation</description>
+  <artifactId>tileverse-pmtiles</artifactId>
+  <name>Tileverse - PMTiles</name>
+  <description>PMTiles format implementation</description>
 
   <dependencies>
     <dependency>
@@ -32,7 +32,7 @@
       <artifactId>tileverse-vectortiles</artifactId>
     </dependency>
     <dependency>
-      <groupId>io.tileverse.pmtiles</groupId>
+      <groupId>io.tileverse.tilepyramid</groupId>
       <artifactId>tileverse-tilepyramid</artifactId>
     </dependency>
 

@@ -4,10 +4,11 @@
 
   <parent>
     <groupId>io.tileverse.pmtiles</groupId>
-    <artifactId>tileverse-pmtiles</artifactId>
+    <artifactId>tileverse-pmtiles-modules</artifactId>
     <version>${revision}</version>
   </parent>
 
+  <groupId>io.tileverse.tilepyramid</groupId>
   <artifactId>tileverse-tilepyramid</artifactId>
   <name>Tileverse Tile Pyramid Model</name>
   <description>Generic object model for defining tile pyramids and tiling schemes</description>

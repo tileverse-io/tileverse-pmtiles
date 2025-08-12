@@ -12,7 +12,7 @@ Tileverse follows a modular, layered architecture that separates core functional
 
 The library is focused on PMTiles functionality with these main modules:
 
-1. **tileverse-pmtiles-reader**
+1. **tileverse-pmtiles**
    - Core PMTiles format implementation
    - Reading and writing PMTiles files
    - Integration with tileverse-rangereader for multi-source access
@@ -20,7 +20,7 @@ The library is focused on PMTiles functionality with these main modules:
 2. **tileverse-mvt** (planned)
    - Vector tile encoding/decoding
    - Mapbox Vector Tiles support
-   - Depends on pmtiles-reader module
+   - Depends on pmtiles module
 
 3. **tileverse-cli** (planned)
    - Command-line interface
@@ -32,16 +32,15 @@ The library is focused on PMTiles functionality with these main modules:
 The dependencies between modules flow in one direction to prevent circular dependencies:
 
 ```
-tileverse-cli
-    └── tileverse-pmtiles-reader
-        └── tileverse-rangereader (external dependency)
-            ├── tileverse-rangereader-core
-            ├── tileverse-rangereader-s3
-            ├── tileverse-rangereader-azure
-            └── tileverse-rangereader-gcs
+   tileverse-pmtiles
+    └── tileverse-rangereader (external dependency)
+        ├── tileverse-rangereader-core
+        ├── tileverse-rangereader-s3
+        ├── tileverse-rangereader-azure
+        └── tileverse-rangereader-gcs
 
-tileverse-mvt
-    └── tileverse-pmtiles-reader
+tileverse-vectortiles
+    └── tileverse-pmtiles
 ```
 
 ## 2. Core Design Principles

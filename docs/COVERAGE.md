@@ -8,14 +8,14 @@ Each module generates its own coverage report when tests are run:
 
 ```bash
 # Generate coverage for a specific module
-./mvnw clean test -pl src/tileverse-pmtiles-reader
+./mvnw clean test -pl src/tileverse-pmtiles
 
 # Generate coverage for all modules
-./mvnw clean test -pl src/tileverse-pmtiles-reader,src/tileverse-vectortiles
+./mvnw clean test -pl src/tileverse-pmtiles,src/tileverse-vectortiles
 ```
 
 Individual module reports are available at:
-- PMTiles Reader: `src/tileverse-pmtiles-reader/target/site/jacoco/index.html`
+- PMTiles Reader: `src/tileverse-pmtiles/target/site/jacoco/index.html`
 - Vector Tiles: `src/tileverse-vectortiles/target/site/jacoco/index.html`
 
 ## Aggregate Coverage Report
@@ -24,7 +24,7 @@ To generate a combined coverage report across all modules:
 
 ```bash
 # First run tests to generate coverage data
-./mvnw clean test -pl src/tileverse-pmtiles-reader,src/tileverse-vectortiles
+./mvnw clean test -pl src/tileverse-pmtiles,src/tileverse-vectortiles
 
 # Then generate the aggregate report
 ./mvnw verify -pl coverage-report
@@ -38,7 +38,7 @@ To include integration test coverage:
 
 ```bash
 # Run all tests including integration tests
-./mvnw clean verify -pl src/tileverse-pmtiles-reader,src/tileverse-vectortiles
+./mvnw clean verify -pl src/tileverse-pmtiles,src/tileverse-vectortiles
 
 # Generate aggregate report
 ./mvnw verify -pl coverage-report
