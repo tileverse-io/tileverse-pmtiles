@@ -135,18 +135,23 @@
 
       <!-- Internal modules -->
       <dependency>
+        <groupId>io.tileverse.vectortiles</groupId>
+        <artifactId>tileverse-vectortiles</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
         <groupId>io.tileverse.pmtiles</groupId>
         <artifactId>tileverse-pmtiles-test-data</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
         <groupId>io.tileverse.pmtiles</groupId>
-        <artifactId>tileverse-pmtiles-reader</artifactId>
+        <artifactId>tileverse-tilepyramid</artifactId>
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.tileverse.vectortiles</groupId>
-        <artifactId>tileverse-vectortiles</artifactId>
+        <groupId>io.tileverse.pmtiles</groupId>
+        <artifactId>tileverse-pmtiles-reader</artifactId>
         <version>${project.version}</version>
       </dependency>
 
