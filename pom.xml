@@ -29,7 +29,6 @@
   </developers>
 
   <modules>
-    <module>test-data</module>
     <module>src</module>
     <module>coverage-report</module>
   </modules>
@@ -79,7 +78,6 @@
     <jts.version>1.20.0</jts.version>
     <protobuf-java.version>4.31.1</protobuf-java.version>
     <commons-compress.version>1.28.0</commons-compress.version>
-    <hppc.version>0.10.0</hppc.version>
     <logback.version>1.5.18</logback.version>
     <picocli.version>4.7.7</picocli.version>
     <junit.version>5.13.2</junit.version>
@@ -120,12 +118,6 @@
       </dependency>
 
       <dependency>
-        <groupId>com.carrotsearch</groupId>
-        <artifactId>hppc</artifactId>
-        <version>${hppc.version}</version>
-      </dependency>
-
-      <dependency>
         <groupId>org.testcontainers</groupId>
         <artifactId>testcontainers-bom</artifactId>
         <version>${testcontainers.version}</version>
@@ -140,9 +132,10 @@
         <version>${project.version}</version>
       </dependency>
       <dependency>
-        <groupId>io.tileverse.pmtiles</groupId>
-        <artifactId>tileverse-pmtiles-test-data</artifactId>
+        <groupId>io.tileverse.vectortiles</groupId>
+        <artifactId>tileverse-vectortiles</artifactId>
         <version>${project.version}</version>
+        <classifier>tests</classifier>
       </dependency>
       <dependency>
         <groupId>io.tileverse.tilepyramid</groupId>
@@ -296,6 +289,11 @@
           <configuration>
             <release>${maven.compiler.release}</release>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-jar-plugin</artifactId>
+          <version>3.4.2</version>
         </plugin>
         <plugin>
           <groupId>org.apache.maven.plugins</groupId>
@@ -500,6 +498,17 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
       </plugin>
       <plugin>
@@ -603,7 +612,6 @@
           <autoPublish>true</autoPublish>
           <waitUntil>published</waitUntil>
           <excludeArtifacts>
-            <excludeArtifact>tileverse-pmtiles-test-data</excludeArtifact>
             <excludeArtifact>tileverse-pmtiles-coverage-report</excludeArtifact>
           </excludeArtifacts>
         </configuration>
