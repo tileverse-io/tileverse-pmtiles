@@ -59,7 +59,7 @@
   <properties>
     <!-- CI-friendly version management -->
     <revision>1.0-SNAPSHOT</revision>
-    <tileverse-rangereader.version>1.0-SNAPSHOT</tileverse-rangereader.version>
+    <tileverse-rangereader.version>1.0.0</tileverse-rangereader.version>
 
     <!-- Skip GPG signing by default (enabled during publishing) -->
     <gpg.skip>true</gpg.skip>
