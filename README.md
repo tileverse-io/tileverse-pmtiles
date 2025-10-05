@@ -1,5 +1,7 @@
 # Tileverse PMTiles
 
+> **⚠️ ARCHIVED**: This repository has been archived and is no longer maintained. The PMTiles library has been merged into the main Tileverse monorepo at [tileverse-io/tileverse](https://github.com/tileverse-io/tileverse). Please use the consolidated repository for the latest version.
+
 A Java 17+ library for reading and writing PMTiles, a cloud-optimized format for map tiles.
 
 ## Overview
